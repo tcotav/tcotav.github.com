@@ -1,0 +1,576 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Sticky footer &middot; Twitter Bootstrap</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- CSS -->
+    <link href="bootstrap/css/bootstrap.css" rel="stylesheet">
+    <style type="text/css">
+
+      /* Sticky footer styles
+      -------------------------------------------------- */
+
+      html,
+      body {
+        height: 100%;
+        /* The html and body elements cannot have any padding or margin. */
+      }
+
+      /* Wrapper for page content to push down footer */
+      #wrap {
+        min-height: 100%;
+        height: auto !important;
+        height: 100%;
+        /* Negative indent footer by it's height */
+        margin: 0 auto -60px;
+      }
+
+      /* Set the fixed height of the footer here */
+      #push,
+      #footer {
+        height: 60px;
+      }
+      #footer {
+        background-color: #f5f5f5;
+      }
+
+      /* Lastly, apply responsive CSS fixes as necessary */
+      @media (max-width: 767px) {
+        #footer {
+          margin-left: -20px;
+          margin-right: -20px;
+          padding-left: 20px;
+          padding-right: 20px;
+        }
+      }
+
+
+
+      /* Custom page CSS
+      -------------------------------------------------- */
+      /* Not required for template or sticky footer method. */
+
+      .container {
+        width: auto;
+        max-width: 680px;
+      }
+      .container .credit {
+        margin: 20px 0;
+      }
+
+    </style>
+    <link href="bootstrap/css/bootstrap-responsive.css" rel="stylesheet"/>
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="bootstrap/js/html5shiv.js"></script>
+    <![endif]-->
+
+    <!-- Fav and touch icons -->
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="bootstrap/ico/apple-touch-icon-144-precomposed.png"/>
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="bootstrap/ico/apple-touch-icon-114-precomposed.png"/>
+      <link rel="apple-touch-icon-precomposed" sizes="72x72" href="bootstrap/ico/apple-touch-icon-72-precomposed.png"/>
+                    <link rel="apple-touch-icon-precomposed" href="bootstrap/ico/apple-touch-icon-57-precomposed.png"/>
+                                   <link rel="shortcut icon" href="bootstrap/ico/favicon.png"/>
+  </head>
+
+  <body>
+
+
+    <!-- Part 1: Wrap all page content here -->
+    <div id="wrap">
+
+      <!-- Begin page content -->
+      <div class="container">
+
+<h2 id="the-official-unofficial-getting-started-with-chefdk-guide">The Official Unofficial Getting Started with ChefDK Guide</h2>
+<p><img src="https://raw.githubusercontent.com/tcotav/chefdk_getting_started/master/images/chefdk-01.png" title="ChefDK Overview" alt="alt text" /> <em>There is no scene imaginable that cannot be further enhanced by adding giant robots - Aristotle</em></p>
+<h3 id="overview">Overview</h3>
+<p>We're going to build a cookbook to support installing tomcat and a (canned) java war file on to an ubuntu host. In doing this, we'll walk through the tools included in <code>chefdk</code> to help manage cookbooks and manage testing.</p>
+<p>You'll need to:</p>
+<ul>
+<li><a href="http://www.getchef.com/downloads/chef-dk/">get Chef DK</a></li>
+<li><a href="http://vagrantup.com">get Vagrant</a></li>
+</ul>
+<h3 id="get-your-project-started-using-new-chef-command">Get your project started using new <code>chef</code> command</h3>
+<p>We're going to first generate a new cookbook.</p>
+<pre><code>$ chef generate cookbook chefdk_getting_started</code></pre>
+<p>Take a peek at what you've done. We've got a skeleton of a cookbook.</p>
+<pre><code>$ ls chefdk_getting_started
+Berksfile   README.md   metadata.rb
+chefignore  recipes</code></pre>
+<h3 id="get-going-with-git-immediately.">Get going with git immediately.</h3>
+<p>Let's get our git going immediately. Commit often (but you knew that).</p>
+<p>I'm a fan of git flow -- <a href="https://github.com/nvie/gitflow">Git Flow</a> -- as a base workflow and branching model for my git projects. It may be a bit much for a documentation/sample project, but that's how I roll.</p>
+<p>Change to your newly created <code>chefdk_getting_started</code> directory and then:</p>
+<pre><code>$ git flow init</code></pre>
+<p>(I use the defaults for git flow. Spam the return key.)</p>
+<p>Right after init, it drops me into the develop branch.</p>
+<pre><code>$ git branch
+* develop
+master</code></pre>
+<p>(If you're using vanilla git, then just: <code>$ git init</code> )</p>
+<p>Then do the initial commit:</p>
+<pre><code>$ git add -A
+$ git commit -m &quot;initial commit&quot;</code></pre>
+<p>Git sanity check:</p>
+<pre><code>$ git status
+# On branch develop
+nothing to commit, working directory clean</code></pre>
+<p>And we're golden. Next: test kitchen</p>
+<p align="center">
+  
+<img src='https://raw.githubusercontent.com/tcotav/chefdk_getting_started/master/images/chefdk-tk1.png' alt="ChefDK Test Kitchen" />
+</p>
+<h3 id="setting-up-test-kitchen">setting up test kitchen</h3>
+<p>With ChefDK installed, you've got test-kitchen all ready installed. We're going to use it to write some tests for the cookbook that we're going to write in the latter steps so first things first.</p>
+<p>Test drive the kitchen command:</p>
+<pre><code>$ kitchen</code></pre>
+<p>The <a href="http://www.kitchen.ci">docs on test-kitchen</a> are awesome by the way. I'd recommend taking a run through their entire tutorial.</p>
+<h3 id="kitchen.yml----configuring-test-kitchen">kitchen.yml -- configuring test kitchen</h3>
+<p>The new <code>chef</code> tool already set us up to run kitchen. In your basedir, you'll find the kitchen config file <code>.kitchen.yml</code></p>
+<p><code>.kitchen.yml</code></p>
+<pre><code>---
+driver:
+  name: vagrant
+
+provisioner:
+  name: chef_solo
+
+platforms:
+  - name: ubuntu-12.04
+  - name: centos-6.4
+
+suites:
+  - name: default
+    run_list:
+      - recipe[bar::default]
+    attributes:</code></pre>
+<p>By default, the <code>chef</code> app set you up to use <a href="http://vagrantup.com">Vagrant</a> with the default of <a href="http://virtualbox.org">Virtualbox</a> as your VM environment and including two vms: one centos and one ubuntu.</p>
+<p>We can confirm those by running the command as follows:</p>
+<pre><code>$ kitchen list
+Instance             Driver   Provisioner  Last Action
+default-ubuntu-1204  Vagrant  ChefSolo     &lt;Not Created&gt;
+default-centos-64    Vagrant  ChefSolo     &lt;Not Created&gt;</code></pre>
+<p>For general cookbook development, you'd want to hit up both the RH family and debian, but for now, we'll just use ubuntu. Remove the line for centos</p>
+<pre><code>  - name: centos-6.4</code></pre>
+<p>and list again:</p>
+<pre><code>$ kitchen list
+Instance             Driver   Provisioner  Last Action
+default-ubuntu-1204  Vagrant  ChefSolo     &lt;Not Created&gt;</code></pre>
+<p>Leaving just one vagrant box to install.</p>
+<p>We have one more change to make to the <code>.kitchen.yml</code> file -- changing the run_list that we want applied to our soon-to-be-created-and-launched node.</p>
+<p>Change this:</p>
+<pre><code>run_list:
+  - recipe[bar::default]</code></pre>
+<p>To this:</p>
+<pre><code>run_list:
+  - recipe[chefdk_getting_started]</code></pre>
+<p>Do a quick check-in of the change into git.</p>
+<pre><code>$ git add .kitchen.yml
+$ git commit -m &quot;updated kitchen yml -- 1 platform&quot;</code></pre>
+<p>and then let's give it a shot:</p>
+<pre><code>$ kitchen create all
+-----&gt; Starting Kitchen (v1.2.1)
+-----&gt; Creating &lt;default-ubuntu-1204&gt;...</code></pre>
+<p>And off it'll go. I already have the vagrantbox for <code>ubuntu-1204</code> sitting around so that'll cut the run time of the command. What is going on here is that kitchen is kicking off a <code>vagrant up</code> for the <code>ubuntu-1204</code> host image. If you don't have it on your host, it will go out and retrieve it from the magical glorious intarwubz. This might take a while. Then it will bring up the host in normal vm fashion.</p>
+<p>We can confirm our work with the following command:</p>
+<pre><code>$ kitchen list
+Instance             Driver   Provisioner  Last Action
+default-ubuntu-1204  Vagrant  ChefSolo     Created</code></pre>
+<p>Note that the <code>Last Action</code> column changed from <code>&lt;Not Created&gt;</code> to <code>Created</code>.</p>
+<p>Okay... so now what?</p>
+<h3 id="kitchen-converge">Kitchen converge</h3>
+<pre><code>$ kitchen converge</code></pre>
+<p>First you'll see it head out and grab the chef installer and install it on our ubuntu-1204 node. I had an error (documented changing the cookbook name in <code>.kitchen.yml</code> without ACTUALLY changing the file...</p>
+<p>If you run into any errors or problems, I'd recommend a good solid 10 minutes of hysterical sobbing followed by reading the error message and logs.</p>
+<p>Invariably the chef client will run. We don't have it doing anything yet so it is a bit anticlimactic. We did change the state of the node to <code>Converged</code> though... so we got that going for us (which is nice).</p>
+<pre><code>$ kitchen list
+Instance             Driver   Provisioner  Last Action
+default-ubuntu-1204  Vagrant  ChefSolo     Converged</code></pre>
+<h3 id="do-something">Do Something!</h3>
+<p>Hopefully you didn't start reading this late at night as you'll never be able to sleep with all this excitement. Now we're going to do a bit of pure chef stuff. The app we're writing is to set up a tomcat instance and drop a (canned) war into it along with a few other files.</p>
+<p>What do we need to do that? First, lets add a few public cookbooks: <code>tomcat</code>, <code>java</code></p>
+<p>Normally we'd start dicking around with a Gemfile to get <code>Berkshelf</code> installed to magically manage our cookbook dependencies, but <code>Berkshelf</code> is another component native to <code>chefdk</code> so yay team.</p>
+<p>Further, if you look inside the cookbook directory (where we'll be doing all of our custom cookbook work), you'll find the <code>chefdk_getting_started</code> cookbook stubbed out for us by <code>chefdk</code>.</p>
+<p>Inside that cookbook directory, you'll see</p>
+<pre><code>$ ls
+Berksfile   chefignore  metadata.rb recipes</code></pre>
+<p>We're not going to do anything with Berksfile. It looks like this stubbed out:</p>
+<p><code>Berksfile</code></p>
+<pre><code>source &quot;https://api.berkshelf.com&quot;
+
+metadata</code></pre>
+<p>We use Berkshelf to help us manage cookbook dependencies. Like we need tomcat for our cookbook. Tomcat needs java. This file though tells Berkshelf to defer to the <code>metadata.rb</code> file for its requirements. We'll look at that file now.</p>
+<p><code>metadata.rb</code></p>
+<pre><code>name             &#39;chefdk_getting_started&#39;
+maintainer       &#39;&#39;
+maintainer_email &#39;&#39;
+license          &#39;&#39;
+description      &#39;Installs/Configures &#39;
+long_description &#39;Installs/Configures &#39;
+version          &#39;0.1.0&#39;</code></pre>
+<p>Well, a whole lot of nothing going on there. Not even my name, email address, or licensing... Anyway, functionally we don't need that. What we NEED to do is tell Berkshelf what cookbooks we're going to need for our custom recipe.</p>
+<p>At the bottom, we add the line:</p>
+<pre><code>depends &quot;tomcat&quot;</code></pre>
+<p>Oooookay, let's have a go with that. We're going to run Berkshelf and tell it to go and get all of the dependencies for the tomcat cookbook.</p>
+<pre><code>$ berks install
+Resolving cookbook dependencies...
+Fetching &#39;chefdk_getting_started&#39; from source at .
+Fetching cookbook index from https://api.berkshelf.com...
+Using java (1.22.0)
+Using chefdk_getting_started (0.1.0) from source at .
+Using openssl (1.1.0)
+Using tomcat (0.15.12)</code></pre>
+<p>Time for happy dance. It worked. Commit metadata.rb changes into git.</p>
+<p>What happened? Well, using the Power of Berkshelf (tm) we imported cookbooks and dependencies by just including the name of the desired cookbook in the metadata.rb and then invoking the <code>berks</code> command to install them. If you want to go and confirm that these new cookbooks are around, you can do a</p>
+<pre><code>$ ls ~/.berkshelf/cookbooks
+java-1.22.0
+openssl-1.1.0
+tomcat-0.15.12</code></pre>
+<p>For the full description and docs on berkshelf, please go <a href="http://www.berkshelf.com">to the website</a>.</p>
+<p>We've got our supporting cookbooks. Now let's take a little step to using them.</p>
+<h3 id="first-cookbook-recipe">First Cookbook Recipe</h3>
+<p align="center">
+  
+<img src='https://raw.githubusercontent.com/tcotav/chefdk_getting_started/master/images/chefdk-knife.png' alt="Knife!!!!" />
+</p>
+
+<p>If we run our kitchen job again, it will run the chef client on our virtual node. It will use the runlist we specified in the <code>.kitchen.yml</code> but it still won't do anything. Why's that? Because we haven't done anything with the default recipe in chefdk_getting_started. Let's crack that file at:</p>
+<p><code>cookbooks/chefdk_getting_started/recipes/default.rb</code></p>
+<p>The file currently only has comments (the hash (#) denotes a comment line in these files). So at the end of the file add this line:</p>
+<pre><code>include_recipe &#39;tomcat&#39;</code></pre>
+<p>Close and write the file.</p>
+<p>Do a quick check-in to git (because that's how we all roll and we're on the dev branch after all...)</p>
+<h3 id="run-kitchen-after-some-changes----different-node-convergeance.">Run Kitchen after some changes -- different node convergeance.</h3>
+<p>Now we're going to see if what we put into place will work -- we'll use the converge command to once again spin up the chef run on the node. This time though, we gave the recipe something to do. Several somethings in fact as you'll see from the output of the following command:</p>
+<pre><code>$ kitchen converge</code></pre>
+<p>Well I'm not going to lie -- that command just exploded all over my console. TO THE WET WIPES!</p>
+<p>(Some time later...)</p>
+<p>It didn't particularly like installing openjdk-6. Maybe it was some transient failure? Ideally, I'd be using jdk 7 anyway.</p>
+<p>Wow -- this is a lot of stuff to install.</p>
+<pre><code>   0 upgraded, 88 newly installed, 0 to remove and 5 not upgraded.
+   Need to get 66.4 MB of archives.</code></pre>
+<p>Failed on retrieving something from the repo, fwiw. Not my problem and yet -- totally my problem. Let's try to force jdk 7. How do we do something like that? A good place to look is the README.md of the cookbook we're fiddling with. In this case, java.</p>
+<h3 id="omfg-things-went-awry">OMFG things went AWRY</h3>
+<p>So we need to try to install a different version of java. We probably should've done this at the start, but we were lazy. So, first we go to the chef cookbook community site and look up java.</p>
+<p>Community Cookbook site link to <a href="http://community.opscode.com/cookbooks/java">Java Cookbook</a>. This is scenic and all that. Some pictures of funny looking people over in the right hand column of the page. Get past that. We want to look at <a href="http://community.opscode.com/cookbooks/java">this cookbook on github</a>.</p>
+<p>(this is a hoot, isn't it?)</p>
+<p>On the <a href="http://community.opscode.com/cookbooks/java">java cookbook github page</a>, scroll down to the README.md. There we find the usage that we're looking for to grab openjdk version 7. There's all kinds of stuff there that we could configure, but all we really want is <code>openjdk</code> version <code>7</code>.</p>
+<p>in the <code>Attributes</code> section, we find attributes that match what we want. They are:</p>
+<pre><code>node[&#39;java&#39;][&#39;install_flavor&#39;] = &#39;openjdk&#39;    # this is the default, but humor me.  let&#39;s be EXPLICIT!
+node[&#39;java&#39;][&#39;jdk_version&#39;] = &#39;7&#39;</code></pre>
+<p>Ok, great. We've got those, but where do they go in our recipe? We need to put them into the file that doesn't exist -- <code>attributes/default.rb</code></p>
+<p>So we create that directory path and then that file in the root of the chefdk_getting_started cookbook directory and put those two lines into it.</p>
+<p><code>mkdir attributes</code></p>
+<p><code>vim attributes/default.rb</code> # or whatever text editor you use . paste in the above text though.</p>
+<p>Check any outstanding changes into git.</p>
+<p>ok, let's try that again with the convert</p>
+<pre><code>$ kitchen converge</code></pre>
+<p>Failed again. Same crap. What in theeeeee WORLD is going on???? (This might not happen to you. Bastards...). Ok, here's what we'll do, we'll update all of the apt packages. Maybe we're all just out of date. So let's get our ancient ubuntu version updated a bit using apt and then we'll come back to this.</p>
+<h3 id="but-first-a-word-about-attributes.">But first, a word about attributes.</h3>
+<p>Attributes allow you to pass values or overrides into the cookbooks. Attribute precedence is a bit of a complicated beast. There are <strong>7,421 different levels of precedence</strong>. There used to be <strong>7,422</strong> but one didn't make sense so they removed it.<sup>[<a href="#link-1">1</a>]</sup> Anyway, you set the level and then put in the key as you would in dealing with a ruby Hash.</p>
+<pre><code>&lt;level&gt;[&lt;key&gt;] = &lt;value&gt;</code></pre>
+<p>I use <code>default</code> which is the... default. If we wanted to be sure to force that puppy in there, we might use <code>normal</code> or <code>override</code>. You can learn more about <a href="http://docs.opscode.com/essentials_cookbook_attribute_files.html#attribute-precedence">attribute precedence here</a>. Writing cookbooks, you'll want to pull variables out of the actual recipes (i.e. don't hardcode stuff) and put them here. There are more advanced ways of handling things like that. I'm sure we'll stumble upon them later. Now on to getting apt working.</p>
+<h3 id="dusty-repos-are-bad----back-to-our-apt-problem">Dusty Repos are bad -- back to our apt problem</h3>
+<p>Okay, everyone remembers how we add external cookbooks to our repo, right? Yes, that's right -- <code>metadata.rb</code></p>
+<p>We edit metadata.rb adding the following line:</p>
+<pre><code>depends &quot;apt&quot;</code></pre>
+<p>Berkshelf is made aware of it because of the relationship we set up between it and the metadata.rb file. We run</p>
+<pre><code>$ berks update
+Resolving cookbook dependencies...
+Fetching &#39;chefdk_getting_started&#39; from source at .
+Fetching cookbook index from https://api.berkshelf.com...
+Using apt (2.3.10)
+Using chefdk_getting_started (0.1.0) from source at .
+Using tomcat (0.15.12)
+Using openssl (1.1.0)
+Using java (1.22.0)</code></pre>
+<p>There's apt. But that just grabs the cookbook. We want our recipe to use it. So we add a line just like the tomcat line, <strong>BUT</strong> we need it to update the local packages <strong>BEFORE</strong> it does the java install else... same failure. (Minor data point - if we did it in the reverse order, it would fail this time and would probably work next time as it would again try to get the node in the appropriate state AND it would have refreshed the apt packages). Still, let's do it right (ish) this time.</p>
+<p>First we edit</p>
+<p><code>recipes/default.rb</code></p>
+<p>so that it looks like this</p>
+<pre><code>include_recipe &#39;apt&#39;    # &lt;---- we added this
+include_recipe &#39;tomcat&#39;</code></pre>
+<p>and then let's give it a go!</p>
+<pre><code>$ kitchen converge</code></pre>
+<p>And what to my wondering eyes did appear? Well, not a lot of red error messages -- that's for sure. It worked. <strong>Virtual High Five</strong></p>
+<p>Man, that was such a rabbit hole dive I need to take a moment to figure out what in the world was going on before it.</p>
+<p>(time passes)</p>
+<p align="center">
+  
+<img src='https://raw.githubusercontent.com/tcotav/chefdk_getting_started/master/images/chefdk-poke.png' alt="Testing Revealed" />
+</p>
+
+<h3 id="and-now-actual-testing-will-occur">And now ACTUAL TESTING will occur</h3>
+<p>For that headline to be true though -- we'll have to write some tests. There are different kinds of tests and test-kitchen supports a variety. First we're going to put some stuff into what is arguably the EASIEST test-kitchen supported test type: bats. <a href="https://github.com/sstephenson/bats">Bats</a> stands for &quot;bash automated testing system&quot;. There are lots of examples there at the link. To support this, we'll first make a test directory to use:</p>
+<pre><code>mkdir -p test/integration/default/bats</code></pre>
+<p>and then create a file, <code>tomcat.rb</code>, inside of that directory.</p>
+<p><code>tomcat.rb</code></p>
+<pre><code>#!/usr/bin/env bats
+
+@test &quot;java is found in PATH&quot; {
+  run which java
+  [ &quot;$status&quot; -eq 0 ]
+}
+
+@test &quot;tomcat process is visible &quot; {
+  result=$(ps aux | grep java | grep tomcat|wc -l)
+  [ &quot;$result&quot; -eq 1 ]
+}</code></pre>
+<p>Okay, let's give that a test run.</p>
+<pre><code>$ kitchen verify
+-----&gt; Starting Kitchen (v1.2.1)
+-----&gt; Verifying &lt;default-ubuntu-1204&gt;...
+       Removing /tmp/busser/suites/bats
+Uploading /tmp/busser/suites/bats/tomcat.bats (mode=0644)
+-----&gt; Running bats test suite
+ ✓ java is found in PATH
+ ✓ tomcat process is visible
+
+2 tests, 0 failures
+       Finished verifying &lt;default-ubuntu-1204&gt; (0m0.95s).
+-----&gt; Kitchen is finished. (0m1.89s)</code></pre>
+<p>Quick point there -- <code>kitchen verify</code> is what we do to verify that our test is working as we expect. Invoking <code>kitchen test</code> would do a full test -- from spinning up a new vm, chef install, node converge, then test. We'll do that later. Probably.</p>
+<p>Okay, so we got <code>bats</code> working and doing some tests. Let's check it into <code>git</code> and then move on to adding more features to our cookbook.</p>
+<h3 id="war----huh-good-god-yall">War -- huh! Good God Y'All</h3>
+<p>Now we're going to push our war file up to the vm and into the webapps directory of the tomcat install.</p>
+<p>The source that can be used to generate the war file is available in the <a href="https://github.com/tcotav/punter">punter github repo</a>.</p>
+<p>We need to get the file, <code>punter.war</code> into our cookbook directory into the files directory of the cookbook. First, let's make a spot to place the file. In the cookbook base directory, do the following:</p>
+<pre><code>mkdir -p files/default</code></pre>
+<p>and then place the punter.war into that directory. We can either compile your own version of it or pull the one that was (hackishly wedged) <a href="https://github.com/tcotav/punter/blob/master/punter.war?raw=true">placed into git</a>. So when we're done, the full path to the war in our cookbook is: <code>files/default/punter.war</code></p>
+<p>That's it for placing the file. Now we need to modify our recipe to do something with it. Time for some <a href="http://docs.opscode.com/resource_cookbook_file.html">cookbook_file</a>.</p>
+<p>Open the file <code>recipes/default.rb</code> and modify it so that it looks like the following:</p>
+<pre><code>#
+# Cookbook Name:: chefdk_getting_started 
+# Recipe:: default
+#
+# Copyright (C) 2014
+#
+#
+#
+
+include_recipe &#39;apt&#39;
+include_recipe &#39;tomcat&#39;
+
+cookbook_file &quot;/var/lib/tomcat6/webapps/punter.war&quot; do
+  source &quot;punter.war&quot;
+  mode 00744
+  owner &#39;root&#39;
+  group &#39;root&#39;
+end</code></pre>
+<p>All we're doing with this resource call is stating that we want the local <code>file/default/punter.war</code> source to be placed on the remote file system as <code>/var/lib/tomcat6/webapps/punter.war</code></p>
+<p>We can check if anything explodes by running:</p>
+<pre><code>$ kitchen converge</code></pre>
+<p>and then manually log into the host via</p>
+<pre><code>$ kitchen login</code></pre>
+<p>and confirm two things:</p>
+<ol style="list-style-type: decimal">
+<li>that the file, <code>punter.war</code> is sitting in /var/lib/tomcat6/webapps</li>
+<li>and that next to it is the unrolled war directory named <code>punter</code></li>
+</ol>
+<p>Check it all into git and then we'll turn those two tests into coded reproducable callable tests. How sexy is that?</p>
+<p>Note, I was going to switch over to <code>chefspec</code> here, but its not yet supported as of today. Or at least properly supported. So we'll revise this to use chefspec at some future date.</p>
+<p>For now, we'll continue writing our code in bats. We've already defined our tests above -- now we just need to translate them into code.</p>
+<pre><code>@test &quot;war is placed in proper location &quot; {
+  run [ -f /var/lib/tomcat6/webapps/punter.war ]
+  [ &quot;$status&quot; -eq 0 ]
+}
+
+
+@test &quot;war is unrolled&quot; {
+  run [ -d /var/lib/tomcat6/webapps/punter ]
+  [ &quot;$status&quot; -eq 0 ]
+}</code></pre>
+<p>Append these two lines to your <code>test/integration/default/bats/tomcat.bats</code> file. Basically we make use of bash's built in <a href="http://www.tldp.org/LDP/abs/html/fto.html">file test operators</a> to confirm the war is in place AND that it had been properly unrolled.</p>
+<p>We run the test using the kitchen command:</p>
+<pre><code>$ kitchen verify
+-----&gt; Starting Kitchen (v1.2.1)
+-----&gt; Verifying &lt;default-ubuntu-1304&gt;...
+       Removing /tmp/busser/suites/bats
+Uploading /tmp/busser/suites/bats/tomcat.bats (mode=0644)
+-----&gt; Running bats test suite
+ ✓ java is found in PATH
+ ✓ tomcat process is visible
+ ✓ war is placed in proper location
+ ✓ war is unrolled
+
+4 tests, 0 failures
+       Finished verifying &lt;default-ubuntu-1304&gt; (0m1.00s).
+-----&gt; Kitchen is finished. (0m1.96s)</code></pre>
+<p>Another successful test run. Check everything into git. Go get a beers.</p>
+<h3 id="chefspec">Chefspec</h3>
+<pre><code>mkdir -p test/integration/default/chefspec</code></pre>
+<p>TBD -- this should magically work. It does not. So we delay for now. I'm going to step away from the keyboard for a moment and weep.</p>
+<p><a href="https://github.com/opscode/chef-dk/issues/18">Here's why it's not working at the moment. Soon(tm)</a></p>
+<p>(time passes)</p>
+<p align="center">
+  
+<img src='https://raw.githubusercontent.com/tcotav/chefdk_getting_started/master/images/chefdk-sspec.png' alt="Server Spec" />
+</p>
+<h3 id="adding-serverspec">Adding Serverspec</h3>
+<p>Now we're going to jury rig <code>serverspec</code> into our example and duplicate the <code>bats</code> testing that we did above. Serverspec is another test platform that tests your actual servers via ssh.</p>
+<p>But wait, why would we write the same tests AGAIN? What sort of testing is done by chefspec/bats and what is done by serverspec. Well it is good that you asked that, Timmy. Take a seat and let's fire up the magic whiteboard. The heart of it is that we can run serverspec against any hosts. So we're essentially writing tests that can be applied to deployments in QA, Dev, Stage, Production, and any other exotic sci-fi themed environment name you've got at your company. It is portable. If you can see it and ssh to it, you can run serverspec against it.</p>
+<p>That's all well and good, but for now, we just want test kitchen to spin up something and run serverspec tests against it. We'll come back to testing against additional nodes.</p>
+<p>First, we want to make sure our environment is ready to go. We assume that you've got ruby and bundler all ready to go.</p>
+<p>If you've got <code>bundler</code>, then simply</p>
+<p><code>bundle</code></p>
+<p>If you do NOT have <code>bundler</code>, then manually install</p>
+<p><code>gem install serverspec</code></p>
+<p>That's it for the grander setup.</p>
+<p>First lets tell kitchen what we're doing. We edit the <code>.kitchen.yml</code> file so that it looks like this:</p>
+<pre><code>---
+driver:
+  name: vagrant
+
+provisioner:
+  name: chef_solo
+
+platforms:
+  - name: ubuntu-13.04
+
+suites:
+  - name: default
+    run_list:
+      - recipe[chefdk_getting_started::default]
+    attributes:
+  - name: server
+    run_list:
+      - recipe[chefdk_getting_started::default]
+    attributes:</code></pre>
+<p>We added the <code>server</code> suite. We'll make use of that shortly.</p>
+<h3 id="initializing-serverspec">Initializing serverspec</h3>
+<p>The <a href="http://kitchen.ci/docs/getting-started/writing-server-test">website for test kitchen</a> has awesome docs. You should read them. Lets make our serverspec directory.</p>
+<pre><code>mkdir -p test/integration/default/serverspec</code></pre>
+<p>Now create our test file in that directory. It must be an .rb file, and it must match the pattern *_spec.rb.</p>
+<p><code>tomcat_spec.rb</code></p>
+<pre><code>require &#39;serverspec&#39;
+
+include Serverspec::Helper::Exec
+include Serverspec::Helper::DetectOS
+
+describe package(&#39;openjdk-7-jdk&#39;) do
+  it { should be_installed }
+end
+
+describe package(&#39;tomcat6&#39;) do
+  it { should be_installed }
+end
+
+describe port(8080) do
+  it { should be_listening }
+end
+
+describe file(&#39;/var/lib/tomcat6/webapps/punter.war&#39;) do
+  it { should be_file }
+end
+
+describe file(&#39;/var/lib/tomcat6/webapps/punter&#39;) do
+  it { should be_directory }
+end</code></pre>
+<p>How unexciting and unoriginal is that? We just replicated the same tests we did in the <code>bats</code> test. Sad clown. Sad clown. We'll talk about what to test and where later. For now, let's just run with this.</p>
+<p>So again, we run the same command to get this test going. Note, since we moved this test into a separate suite, kitchen will build out a completely separate vm to work against. I say this just so you're not surprised at how long this takes (just for the first go-around) and disk usage.</p>
+<pre><code>$ kitchen verify</code></pre>
+<p>Fire that puppy off. It will run both the default tests as well as the new server (serverspec based) tests. Here's what a run of that should look like:</p>
+<pre><code>$ kitchen verify
+-----&gt; Starting Kitchen (v1.2.2.dev)
+-----&gt; Verifying &lt;default-ubuntu-1304&gt;...
+       Removing /tmp/busser/suites/chefspec
+       Removing /tmp/busser/suites/bats
+Uploading /tmp/busser/suites/bats/tomcat.bats (mode=0644)
+Uploading /tmp/busser/suites/chefspec/tomcat_spec.rb (mode=0644)
+-----&gt; Running bats test suite
+ ✓ java is found in PATH
+ ✓ tomcat process is visible
+ ✓ war is placed in proper location
+ ✓ war is unrolled
+
+4 tests, 0 failures
+       Finished verifying &lt;default-ubuntu-1304&gt; (0m1.40s).
+-----&gt; Verifying &lt;server-ubuntu-1304&gt;...
+       Removing /tmp/busser/suites/serverspec
+Uploading /tmp/busser/suites/serverspec/localhost/tomcat_spec.rb (mode=0644)
+-----&gt; Running serverspec test suite
+/opt/chef/embedded/bin/ruby -I/tmp/busser/suites/serverspec -S /opt/chef/embedded/bin/rspec /tmp/busser/suites/serverspec/localhost/tomcat_spec.rb --color --format documentation
+
+Package &quot;openjdk-7-jdk&quot;
+  should be installed
+
+Package &quot;tomcat6&quot;
+  should be installed
+
+Port &quot;8080&quot;
+  should be listening
+
+File &quot;/var/lib/tomcat6/webapps/punter.war&quot;
+  should be file
+
+File &quot;/var/lib/tomcat6/webapps/punter&quot;
+  should be directory
+
+Finished in 0.08279 seconds
+       Finished verifying &lt;server-ubuntu-1304&gt; (0m1.20s).
+-----&gt; Kitchen is finished. (0m3.20s)</code></pre>
+<p>Test kitchen run of serverspec works great. So what about kicking off this against some random set of nodes? You'll need to sit down for this. Its just that awesome.</p>
+<h3 id="serverspec-no-test-kitchen">Serverspec, no test kitchen</h3>
+<p>I'm going to put words here. Good words. Clear words. You learn much. Yes.</p>
+<h3 id="footnotes">Footnotes:</h3>
+<p><sup>[<a name="link-1">1</a>] - this is 100% fabricated. See docs for real attribute hierarchy</sup></p>
+      </div>
+      <!-- end page content -->
+
+      <div id="push"></div>
+    </div>
+
+    <div id="footer">
+      <div class="container">
+        <p class="muted credit">Article by <a href="mailto:tcotav@gnslngr.us">James Francis | @tcotav </a>.</p>
+      </div>
+    </div>
+
+
+
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="bootstrap/js/jquery.js"></script>
+    <script src="bootstrap/js/bootstrap-transition.js"></script>
+    <script src="bootstrap/js/bootstrap-alert.js"></script>
+    <script src="bootstrap/js/bootstrap-modal.js"></script>
+    <script src="bootstrap/js/bootstrap-dropdown.js"></script>
+    <script src="bootstrap/js/bootstrap-scrollspy.js"></script>
+    <script src="bootstrap/js/bootstrap-tab.js"></script>
+    <script src="bootstrap/js/bootstrap-tooltip.js"></script>
+    <script src="bootstrap/js/bootstrap-popover.js"></script>
+    <script src="bootstrap/js/bootstrap-button.js"></script>
+    <script src="bootstrap/js/bootstrap-collapse.js"></script>
+    <script src="bootstrap/js/bootstrap-carousel.js"></script>
+    <script src="bootstrap/js/bootstrap-typeahead.js"></script>
+
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
