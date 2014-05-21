@@ -98,6 +98,8 @@
 <li><a href="http://vagrantup.com">get Vagrant</a></li>
 <li><a href="https://github.com/tcotav/chefdk_getting_started">supporting github repo</a> (optional)
 </ul>
+<p><em>NOTE</em> - ChefDK is still in early release. So things will change.</p>
+
 <h3 id="get-your-project-started-using-new-chef-command">Get your project started using new <code>chef</code> command</h3>
 <p>We're going to first generate a new cookbook.</p>
 <pre><code>$ chef generate cookbook chefdk_getting_started</code></pre>
@@ -269,7 +271,9 @@ node[&#39;java&#39;][&#39;jdk_version&#39;] = &#39;7&#39;</code></pre>
 <p>Ok, great. We've got those, but where do they go in our recipe? We need to put them into the file that doesn't exist -- <code>attributes/default.rb</code></p>
 <p>So we create that directory path and then that file in the root of the chefdk_getting_started cookbook directory and put those two lines into it.</p>
 <p><code>mkdir attributes</code></p>
-<p><code>vim attributes/default.rb</code> # or whatever text editor you use . paste in the above text though.</p>
+<p><code>vim attributes/default.rb</code> # or whatever text editor you use . Paste in the text we grabbed from the README.md but we'll need to make a minor alteration so that it looks like this:</p>
+<pre><code>default[&#39;java&#39;][&#39;install_flavor&#39;] = &#39;openjdk&#39;    # this is the default, but let&#39;s be EXPLICIT!
+default[&#39;java&#39;][&#39;jdk_version&#39;] = &#39;7&#39;</code></pre>
 <p>Check any outstanding changes into git.</p>
 <p>ok, let's try that again with the convert</p>
 <pre><code>$ kitchen converge</code></pre>
@@ -520,6 +524,7 @@ Finished in 0.08279 seconds
 <p>Test kitchen run of serverspec works great. So what about kicking off this against some random set of nodes? You'll need to sit down for this. Its just that awesome.</p>
 <h3 id="serverspec-no-test-kitchen">Serverspec, no test kitchen</h3>
 <p>I'm going to put words here. Good words. Clear words. You learn much. Yes.</p>
+
 <h3 id="footnotes">Footnotes:</h3>
 <p><sup>[<a name="link-1">1</a>] - this is 100% fabricated. See docs for real attribute hierarchy</sup></p>
       </div>
