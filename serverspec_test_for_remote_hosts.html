@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Serverspec Test For Remote Hosts</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- CSS -->
+    <link href="bootstrap/css/bootstrap.css" rel="stylesheet">
+    <style type="text/css">
+
+      /* Sticky footer styles
+      -------------------------------------------------- */
+
+      html,
+      body {
+        height: 100%;
+        /* The html and body elements cannot have any padding or margin. */
+      }
+
+      /* Wrapper for page content to push down footer */
+      #wrap {
+        min-height: 100%;
+        height: auto !important;
+        height: 100%;
+        /* Negative indent footer by it's height */
+        margin: 0 auto -60px;
+      }
+
+      /* Set the fixed height of the footer here */
+      #push,
+      #footer {
+        height: 60px;
+      }
+      #footer {
+        background-color: #f5f5f5;
+      }
+
+      /* Lastly, apply responsive CSS fixes as necessary */
+      @media (max-width: 767px) {
+        #footer {
+          margin-left: -20px;
+          margin-right: -20px;
+          padding-left: 20px;
+          padding-right: 20px;
+        }
+      }
+
+
+
+      /* Custom page CSS
+      -------------------------------------------------- */
+      /* Not required for template or sticky footer method. */
+
+      .container {
+        width: auto;
+        max-width: 680px;
+      }
+      .container .credit {
+        margin: 20px 0;
+      }
+
+    </style>
+    <link href="bootstrap/css/bootstrap-responsive.css" rel="stylesheet"/>
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="bootstrap/js/html5shiv.js"></script>
+    <![endif]-->
+
+    <!-- Fav and touch icons -->
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="bootstrap/ico/apple-touch-icon-144-precomposed.png"/>
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="bootstrap/ico/apple-touch-icon-114-precomposed.png"/>
+      <link rel="apple-touch-icon-precomposed" sizes="72x72" href="bootstrap/ico/apple-touch-icon-72-precomposed.png"/>
+                    <link rel="apple-touch-icon-precomposed" href="bootstrap/ico/apple-touch-icon-57-precomposed.png"/>
+                                   <link rel="shortcut icon" href="bootstrap/ico/favicon.png"/>
+  </head>
+
+  <body>
+
+
+    <!-- Part 1: Wrap all page content here -->
+    <div id="wrap">
+
+      <div class="container">
+      <!-- begin page content -->
+
+<h2 id="serverspec-test-setup-for-remote-hosts">Serverspec Test Setup For Remote Hosts</h2>
+<h3 id="intro">Intro</h3>
+<p><a href="http://serverspec.org">Serverspec</a> is a great way to check if your servers are configured as you expect. From the website, &quot;serverspec tests your servers' actual state through ssh access&quot;. Of the current scripting packages, I'm a huge fan of serverspec because I can use the same tests in development all the way out through production. A prod box isn't working right? We've automated here a way to make sure that it is in the state we expect for our app. Below I lay out a basic flexible framework for using <code>serverspec</code> with a variety of nodes and applications.</p>
+<h3 id="before-you-start-you-need">Before you start, you need</h3>
+<ul>
+<li>a development chef server (hosted chef or otherwise)</li>
+<li>a chef workstation</li>
+<li>vagrant (http://vagrantup.com)</li>
+<li>serverspec <a href="http://serverspec.org/">installed</a></li>
+<li><a href="https://github.com/tcotav/serverspec_setup_remote">supporting github repo</a></li>
+</ul>
+<h3 id="set-up-test-cookbook---jdemo">Set up Test Cookbook - jdemo</h3>
+<p>We're going to write a set of tests to run against a pair of &quot;external&quot; ubuntu virtual machines running our <a href="https://github.com/tcotav/cookbook-jdemo">jdemo tomcat application</a>. You'll note that the jdemo repo includes serverspec tests. Those run against a virtualized local host. With this doc, we want to show how you can use serverspec to verify any number of remote machines.</p>
+<p>First up, lets make sure you've got the <code>jdemo</code> cookbook installed in your chef server. A <code>Berksfile</code> is provided with this repo that will install the cookbook for you.</p>
+<pre><code>$ berks
+Resolving cookbook dependencies...
+Fetching &#39;jdemo&#39; from git://github.com/tcotav/cookbook-jdemo.git (at master)
+Fetching cookbook index from https://api.berkshelf.com...
+Using apt (2.4.0)
+Using jdemo (0.1.0) from git://github.com/tcotav/cookbook-jdemo.git (at master)
+Using tomcat (0.15.12)
+Using openssl (1.1.0)
+Using java (1.22.0)
+
+$ berks upload
+Skipping apt (2.4.0) (frozen)
+Skipping java (1.22.0) (frozen)
+Skipping jdemo (0.1.0) (frozen)
+Skipping openssl (1.1.0) (frozen)
+Skipping tomcat (0.15.12) (frozen)</code></pre>
+<p>You can do a quick verification of the upload using the <code>knife</code> command:</p>
+<pre><code>$ knife cookbook list | grep jdemo
+jdemo                  0.1.0</code></pre>
+<h3 id="set-up-the-hosts">Set up the hosts</h3>
+<p>We've included a <code>Vagrantfile</code> that will spin up a pair of nodes that we'll test against.</p>
+<p>Open the <code>Vagrantfile</code> and change the variables at the top of the screen (and shown below) to match your environment.</p>
+<pre><code>#
+# CHANGE THESE VARS
+#
+org_name=ENV[&#39;CHEF_ORG&#39;]
+
+chef_validation_key_path = &quot;/Users/james/.chef/#{org_name}-validator.pem&quot;
+#
+# END
+########################################################</code></pre>
+<p>Just under the <code>CHANGE THESE</code> section there are three lines. We're going to do a big of (potentially unnecessary) ruby + vagrant magic here.</p>
+<pre><code>number_of_nodes=2
+chef_recipes = %w{jdemo::default}
+chef_roles=%w{}</code></pre>
+<p>What these lines set up for us is the number of vagrant vms we're going to spin up and also what recipes and roles we're going to apply. I threw in the roles one even though we won't use it for this particular exercise. <code>chef_recipes</code> is set to use the <code>jdemo</code> cookbook taht we've set up using <code>Berkshelf</code>. We'll create two nodes for this go.</p>
+<p>Here's the lame part of this particular test. We'll need to set the hostnames that we're targeting in our <code>/etc/hosts</code> file so that we can hit 'em later using serverspec.</p>
+<h3 id="set-up-the-tests">Set up the Tests</h3>
+<p>There are two parts to the configuration for each of these hosts</p>
+<ul>
+<li>.ssh/config file containing entries for each host tested</li>
+<li>yml configuration describing tests for each host tested</li>
+</ul>
+<p>To configure the ssh, we'll need to know what hosts we're setting up. The naming convention used for the vagrant files in this doc is &quot;jdemo-test-X&quot; where x is the node number starting from 0. So for the default vagrant file we've got two nodes so we're working with hosts jdemo-test-0 and jdemo-test-1. However, here in laptop-land, we don't have working DNS so we're going to use the IP of the boxes instead. The alternative to this is to add entries to the <code>/etc/hosts</code> file. Your call... IP is easier, but in more regular usage we would definitely use hostnames.</p>
+<ol style="list-style-type: decimal">
+<li><p>First off, setting up the ssh config so that we can just magically get on to the hosts. Edit file <code>~/.ssh/config</code> and add the following lines:</p>
+<p>Host 192.168.56.16* User vagrant. IdentityFile ~/.vagrant.d/insecure_private_key</p></li>
+</ol>
+<p>In parallel to that, we want to drop entries into the <code>properties.yml</code> for each host including the tests that we haven't quite gotten around to writing yet.</p>
+<pre><code># first vagrant host
+# use hostname if you can here
+#jdemo-test-0:
+192.168.56.160:
+  # tests to run - found in spec/
+  :roles:
+  - ubuntu
+  - jdemo
+  fake-var: 1.1.14
+
+
+# second vagrant host
+#jdemo-test-1:
+192.168.56.161:
+  # tests to run - found in spec/
+  :roles:
+  - ubuntu
+  - jdemo
+  fake-var: 1.1.14</code></pre>
+<p>Now its time to define the <code>ubuntu</code> and <code>jdemo</code> that we reference in our <code>properties.yml</code> <code>roles</code> section.</p>
+<h3 id="adding-tests">Adding tests</h3>
+<p>The main script picks up whatever is in the role directories. The roles from <code>properties.yml</code> correspond to the directory names present in the <code>spec</code> directory.</p>
+<p>First lets make the roles.</p>
+<pre><code>$ mkdir -p spec/ubuntu
+$ mkdir -p spec/jdemo</code></pre>
+<p>Then lets create some test files. The rules for a file to be executed by serverspec is that they</p>
+<ul>
+<li>must exist in a <code>spec/&lt;role&gt;</code> subdirectory</li>
+<li>must be of the format <code>*_spec.rb</code></li>
+</ul>
+<p>Let's create some placeholder files first:</p>
+<pre><code>$ touch spec/ubuntu/ubuntu_host_spec.rb
+$ touch spec/jdemo/jdemo_spec.rb</code></pre>
+<p>Edit the file <code>spec/ubuntu/ubuntu_host_spec.rb</code></p>
+<pre><code>require &#39;spec_helper&#39;
+
+
+users=[
+    {&#39;name&#39; =&gt; &#39;vagrant&#39;, &#39;uid&#39; =&gt; 900}
+]
+
+groups=[
+    {&#39;name&#39; =&gt; &#39;vagrant&#39;, &#39;gid&#39; =&gt; 900}
+]
+
+users.each do |user|
+  describe user(user[&#39;name&#39;]) do
+    it { should exist }
+    it { should have_uid user[&#39;uid&#39;] }
+  end
+end
+
+groups.each do |group|
+  describe group(group[&#39;name&#39;]) do
+    it { should exist }
+    it { should have_gid group[&#39;gid&#39;] }
+  end
+end</code></pre>
+<p>That looks pretty cool right? Well, it doesn't do much other than confirm that a <code>vagrant</code> user and group have been added and verifies their gid/uid. The idea for this role and respective set of tests is to verify operating system customizations you expect to be done to the target host. If you don't have any of these -- don't use this role for the host you're targeting. Simple as that.</p>
+<p>Next we have our first application level serverspec test.</p>
+<pre><code>require &#39;spec_helper&#39;
+
+# confirm the java install
+describe command(&#39;java -version&#39;) do
+  its(:stderr) { should match /java version \&quot;1.7/ }
+  it { should return_exit_status 0 }
+end
+
+describe port(8080) do
+  it { should be_listening }
+end</code></pre>
+<p>There's more we can add here later, but let's roll with this for right now. To run the test, we just change to our working root directory and run the <code>rake</code> command.</p>
+<pre><code>$ rake
+target - 192.168.56.160
+
+/opt/chefdk/embedded/bin/ruby -S rspec spec/jdemo/jdemo_spec.rb spec/ubuntu/ubuntu_host_spec.rb
+.......
+
+Finished in 0.11187 seconds
+7 examples, 0 failures
+target - 192.168.56.161
+
+/opt/chefdk/embedded/bin/ruby -S rspec spec/jdemo/jdemo_spec.rb spec/ubuntu/ubuntu_host_spec.rb
+.......
+
+Finished in 0.1142 seconds
+7 examples, 0 failures</code></pre>
+<p>We passed all of our tests. Ok, let's see what a failure looks like.</p>
+<h3 id="lets-fail-spectacularly">Let's Fail Spectacularly</h3>
+<p>First, lets set up our failure condition. Connect to the second vagrant box and shut down the <code>tomcat</code> service.</p>
+<pre><code>$ vagrant ssh jdemo-test-1</code></pre>
+<p>and then on the box, we'll want to run the following and then exit the box:</p>
+<pre><code>vagrant@jdemo-test-1:~$ sudo /etc/init.d/tomcat6 stop
+ * Stopping Tomcat servlet engine tomcat6
+
+vagrant@jdemo-test-1:~$ exit</code></pre>
+<p>Ok, now lets run our serverspec test again.</p>
+<pre><code>$ rake
+target - 192.168.56.160
+
+/opt/chefdk/embedded/bin/ruby -S rspec spec/jdemo/jdemo_spec.rb spec/ubuntu/ubuntu_host_spec.rb
+.......
+
+Finished in 0.1217 seconds
+7 examples, 0 failures
+target - 192.168.56.161
+
+/opt/chefdk/embedded/bin/ruby -S rspec spec/jdemo/jdemo_spec.rb spec/ubuntu/ubuntu_host_spec.rb
+..F....
+
+Failures:
+
+  1) Port &quot;8080&quot; should be listening
+     Failure/Error: it { should be_listening }
+       sudo netstat -tunl | grep -- :8080\
+       expected Port &quot;8080&quot; to be listening
+     # ./spec/jdemo/jdemo_spec.rb:10:in `block (2 levels) in &lt;top (required)&gt;&#39;
+
+Finished in 0.12131 seconds
+7 examples, 1 failure
+
+Failed examples:
+
+rspec ./spec/jdemo/jdemo_spec.rb:10 # Port &quot;8080&quot; should be listening
+/opt/chefdk/embedded/bin/ruby -S rspec spec/jdemo/jdemo_spec.rb spec/ubuntu/ubuntu_host_spec.rb failed</code></pre>
+<p>Lets all cheer this one time for that failure. So now you've seen what a failed test looks like.</p>
+<p>Okay, now lets go back in to that host and turn tomcat back on so that our tests succeed. Connect to the vagrant host.</p>
+<pre><code>$ vagrant ssh jdemo-test-1</code></pre>
+<p>On that host, turn the service back on:</p>
+<pre><code>vagrant@jdemo-test-1:~$ sudo /etc/init.d/tomcat6 start
+ * Starting Tomcat servlet engine tomcat6                                           [ OK ]
+  
+vagrant@jdemo-test-1:~$ exit</code></pre>
+<p>Okay, now lets write more tests!</p>
+<h3 id="flushing-out-our-potential-tests">Flushing Out Our Potential Tests</h3>
+<p>What else should we test? Well, lets look at our cookbook and see what resources we're working on and what other cookbooks we call.</p>
+<p>Cookbook summary</p>
+<ul>
+<li>update apt packages</li>
+<li>install tomcat package</li>
+<li>get remote war file</li>
+<li>install war file</li>
+<li>start service</li>
+</ul>
+<p>There's one other thing that we can note from looking at the cookbooks -- in the <code>attributes/default.rb</code> we specify that we want to use <code>openjdk</code> version <code>7</code>.</p>
+<p>So we're going to add that to our test.</p>
+<ul>
+<li>openjdk 7 is installed</li>
+</ul>
+<p>Those are items we found in our cookbooks. Let's translate them into something we can use -- serverspec items.</p>
+<h3 id="into-serverspec">Into Serverspec</h3>
+<p>The first thing we need to test is where does this fit into the role directories that we've set up. We've got two directories:</p>
+<ul>
+<li>jdemo</li>
+<li>ubuntu</li>
+</ul>
+<p>This maps to an OS cookbook and an app cookbook which is a pretty good pattern to follow.</p>
+<p>Pretty clearly the bulk of the list falls into jdemo. The only exception is the status of apt which we'll deal with separately. Inside jdemo there is just one spec file. Serverspec will tick through all the files in a subdirectory so you can either dump everything into one big file or break it out into a bunch of files. Whatever method suits your madness.</p>
+<p>For this, we'll put it all into <code>jdemo_spec.rb</code></p>
+<p>First off, the <code>java</code> install. The way that we did it was fairly generic command line parse that looked like this:</p>
+<pre><code># confirm the java install
+describe command(&#39;java -version&#39;) do
+  its(:stderr) { should match /java version \&quot;1.7/ }
+  it { should return_exit_status 0 }
+end</code></pre>
+<p>Another way we could do this is to confirm that <code>apt</code> installed the package with the following:</p>
+<pre><code>describe package(&#39;openjdk-7-jdk&#39;) do
+  it { should be_installed }
+end</code></pre>
+<p>Great right? Well maybe. What we just did there was tie the test to ubuntu. <em>We crossed the streams.</em> Maybe that's fine in our environment. The <a href="http://docs.opscode.com/resource_package.html">chef resource <code>package</code></a> itself allows for a number of different packages types to be handled (windows, solaris, freebsd, ... etc), but most likely the package name won't be <code>openjdk-7-jdk</code>. We could probably work around that if that was what was needed. Fortunately, we don't need to work around it.</p>
+<p>We can do the same thing to test of <code>tomcat</code> is installed (with the same limitations).</p>
+<pre><code>describe package(&#39;tomcat6&#39;) do
+  it { should be_installed }
+end</code></pre>
+<p>We know the service is running by port 8080 being bound so that's checked already.</p>
+<p>What about the war file? Is it in place as the first part?</p>
+<pre><code>describe file(&#39;/var/lib/tomcat6/webapps/punter.war&#39;) do
+  it { should be_file }
+end</code></pre>
+<p>and then as the second item there -- did the war get opened up and used:</p>
+<pre><code>describe file(&#39;/var/lib/tomcat6/webapps/punter&#39;) do
+  it { should be_directory }
+end</code></pre>
+<p>Wow -- look at us go! Give it a test using the <code>rake</code> command and hopefully it all works out.</p>
+<p>You should see this twice in the serverspec output:</p>
+<pre><code>11 examples, 0 failures</code></pre>
+
+      <!-- end page content -->
+
+      <div id="push"></div>
+    </div>
+
+    <div id="footer">
+      <div class="container">
+        <p class="muted credit">Article by <a href="mailto:tcotav@gnslngr.us">James Francis | @tcotav </a>.</p>
+      </div>
+    </div>
+
+
+
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="bootstrap/js/jquery.js"></script>
+    <script src="bootstrap/js/bootstrap-transition.js"></script>
+    <script src="bootstrap/js/bootstrap-alert.js"></script>
+    <script src="bootstrap/js/bootstrap-modal.js"></script>
+    <script src="bootstrap/js/bootstrap-dropdown.js"></script>
+    <script src="bootstrap/js/bootstrap-scrollspy.js"></script>
+    <script src="bootstrap/js/bootstrap-tab.js"></script>
+    <script src="bootstrap/js/bootstrap-tooltip.js"></script>
+    <script src="bootstrap/js/bootstrap-popover.js"></script>
+    <script src="bootstrap/js/bootstrap-button.js"></script>
+    <script src="bootstrap/js/bootstrap-collapse.js"></script>
+    <script src="bootstrap/js/bootstrap-carousel.js"></script>
+    <script src="bootstrap/js/bootstrap-typeahead.js"></script>
+
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
