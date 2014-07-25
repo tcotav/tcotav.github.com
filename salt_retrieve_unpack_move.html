@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Using Salt: Retrieve, Unpack, Move</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- CSS -->
+    <link href="bootstrap/css/bootstrap.css" rel="stylesheet">
+    <style type="text/css">
+
+      /* Sticky footer styles
+      -------------------------------------------------- */
+
+      html,
+      body {
+        height: 100%;
+        /* The html and body elements cannot have any padding or margin. */
+      }
+
+      /* Wrapper for page content to push down footer */
+      #wrap {
+        min-height: 100%;
+        height: auto !important;
+        height: 100%;
+        /* Negative indent footer by it's height */
+        margin: 0 auto -60px;
+      }
+
+      /* Set the fixed height of the footer here */
+      #push,
+      #footer {
+        height: 60px;
+      }
+      #footer {
+        background-color: #f5f5f5;
+      }
+
+      /* Lastly, apply responsive CSS fixes as necessary */
+      @media (max-width: 767px) {
+        #footer {
+          margin-left: -20px;
+          margin-right: -20px;
+          padding-left: 20px;
+          padding-right: 20px;
+        }
+      }
+
+
+
+      /* Custom page CSS
+      -------------------------------------------------- */
+      /* Not required for template or sticky footer method. */
+
+      .container {
+        width: auto;
+        max-width: 680px;
+      }
+      .container .credit {
+        margin: 20px 0;
+      }
+
+    </style>
+    <link href="bootstrap/css/bootstrap-responsive.css" rel="stylesheet"/>
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="bootstrap/js/html5shiv.js"></script>
+    <![endif]-->
+
+    <!-- Fav and touch icons -->
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="bootstrap/ico/apple-touch-icon-144-precomposed.png"/>
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="bootstrap/ico/apple-touch-icon-114-precomposed.png"/>
+      <link rel="apple-touch-icon-precomposed" sizes="72x72" href="bootstrap/ico/apple-touch-icon-72-precomposed.png"/>
+                    <link rel="apple-touch-icon-precomposed" href="bootstrap/ico/apple-touch-icon-57-precomposed.png"/>
+                                   <link rel="shortcut icon" href="bootstrap/ico/favicon.png"/>
+  </head>
+
+  <body>
+
+
+    <!-- Part 1: Wrap all page content here -->
+    <div id="wrap">
+
+      <div class="container">
+      <!-- begin page content -->
+
+
+<h2 id="using-salt-for-remote-archive-retrieval-unpack-move">Using Salt: Retrieve, Unpack, Move</h2>
+<h3 id="what-you-need">What you need</h3>
+<ul>
+<li><a href="http://vagrantup.com">vagrant</a></li>
+<li><a href="http://virtualbox.org">virtualbox</a></li>
+<li><a href="http://github.com/tcotav/salt_archive_retrieval_unpack_move">supporting git project</a></li>
+</ul>
+<p>Install both <code>vagrant</code> and <code>virtualbox</code>. These are very handy to have around for local development work.</p>
+<p>For this demo, we'll be setting up a masterless salt-minion on Ubuntu 14.04. You can run this on any recent version of Ubuntu (probably... I'm sure one of you has something insanely exotic that breaks everything. Pat yourself on the back.)</p>
+<h3 id="vagrant-up">Vagrant Up</h3>
+<p>If you're going to use our Vagrantfile to work with for this demo, first grab a copy of the box that you'll be using:</p>
+<pre><code>$ vagrant box add trusty https://cloud-images.ubuntu.com/vagrant/trusty/current/trusty-server-cloudimg-amd64-vagrant-disk1.box</code></pre>
+<p>In this same directory, you'll be able to spin up an instance of <code>trusty</code> with the salt-minion ready to go.</p>
+<pre><code>$ vagrant up</code></pre>
+<p>This will bring up the instance and do the salt provisioning. Be patient -- salt provisioning takes a couple of minutes.</p>
+<p>Log into the new host, <code>salt-00</code></p>
+<pre><code>$ vagrant ssh</code></pre>
+<p>Now you're on the host <code>salt-00</code>. You don't need to be just yet.</p>
+<h3 id="salt-states">Salt states</h3>
+<p>The first thing we need to add is a <code>top.sls</code> file in our salt file root. We specify the location of this file in the <code>minion</code> file that we used to provision the vagrant host. You can take a quick look at <code>top.sls</code> either locally at <code>provision/minion</code> or on the vagrant host in <code>/etc/salt/minion</code>. Here's the relevant section of the file:</p>
+<pre><code>file_roots:
+  base:
+    - /vagrant/srv/salt</code></pre>
+<p>Back to <code>top.sls</code>. We're going to call our exercise 'workstation' as we're copying over configs for a workstation. Here's our <code>top.sls</code></p>
+<pre><code>base:
+  &#39;*&#39;:
+    - workstation</code></pre>
+<p>Simple enough. All hosts coming through will get this state.</p>
+<p>Next we make the directory for workstation in the same directory as <code>top.sls</code>.</p>
+<pre><code>$ mkdir workstation
+$ cd workstation</code></pre>
+<p>From there it's pretty simple, we need to do three things: retrieve from remote, unpack, and then place our target. We create and put these yaml snippets into a file named <code>init.sls</code> in workstation. Here are those three sections.</p>
+<h3 id="retrieve">Retrieve</h3>
+<p>First lets make sure we have a place to land the file -- a staging dir. I'll do this without using any pillar information or grains or anything else -- KISS. If you crack open the <code>workstation/init.sls</code> file, you'll see that we do use some variables at the top that are reflected in the code snippets below.</p>
+<p>First make sure the directory we're going to be writing to exists and has the permissions/ownership that we want:</p>
+<pre><code>stage_dir:
+  file.directory:
+    - name: {{ stage_dir }}
+    - user:  {{ uuser }}
+    - group: {{ uuser }}
+    - dir_mode: 755
+    - file_mode: 755</code></pre>
+<p>Then we're going to use the salt state <code>file.managed</code> with a remote source.</p>
+<pre><code>stage_tgz:
+  file.managed:
+    - name: {{ stage_dir }}/{{ src_tgz }}
+    - source: {{ src_base_url }}/{{ src_tgz }}
+    - source_hash: {{ src_base_url }}/{{ src_tgz_hash }}
+    - user: {{ app_owner }}
+    - group: {{ app_owner }}
+    - mode: 0755</code></pre>
+<p>This line:</p>
+<pre><code>- source: {{ src_base_url }}/{{ src_tgz }}</code></pre>
+<p>makes a web call and retrieves the requested tar.gz. Note, you must specify a <code>source_hash</code> for any remote file request via <code>file.managed</code>.</p>
+<p>As an aside, we generated the required hash on OSX with:</p>
+<pre><code>$ shasum -a256 workstation-init.tar.gz &gt; workstation-init.tar.gz.sha</code></pre>
+<p>Okay, we've pulled down our file. What next?</p>
+<h3 id="open-the-archive">Open the archive</h3>
+<p>For the record, I think there's another way to do this, but I dropped right down to <code>cmd.run</code>.</p>
+<pre><code>untar:
+  cmd.run:
+    - name: tar -xzvf {{ src_tgz }}
+    - cwd: {{ stage_dir }}
+    - onchanges:
+      - file: stage_tgz</code></pre>
+<p>This is pretty straightforward code. The only interesting bit here is the use of <code>onchanges</code>. This tells untar to ONLY run when the <code>file: stage_tgz</code> state has changes. For more information on <code>onchanges</code> and other items that salt calls requisites, see <a href="http://docs.saltstack.com/en/latest/ref/states/requisites.html#requisites">the full docs</a>.</p>
+<p>So this state should get our tar file unpacked.</p>
+<h4 id="move-the-unrolled-directory-to-its-final-location">Move the unrolled directory to its final location</h4>
+<p>We're going to move our directory to <code>/tmp</code>. Yes, that is silly, but that's what we're doing. Write your own post if you want to move it elsewhere :-p</p>
+<pre><code>ws_move:
+  file.rename:
+    - name: /tmp
+    - source: {{ stage_dir }}/workstation-init
+    - force: True
+    - makedirs: True
+    - onchange:
+      - cmd: untar</code></pre>
+<p>Again, pretty straightforward. Again, notice that we use the <code>onchange</code> requisite to make sure we don't take unnecessary actions.</p>
+<p>That's it, it is all written up. Check it all into git and then lets run it.</p>
+<h3 id="running-it">Running it</h3>
+<p>Two term windows going here. In one, run the script <code>pyw</code>. This just kicks off a simple python webserver in the current directory and bound to port 8080.</p>
+<p>Second window, spin up vagrant if you haven't done so already and then log in.</p>
+<pre><code>$ vagrant up
+$ vagrant ssh</code></pre>
+<p>Now you're on the vagrant host. You'll need to be root to run the salt stuff. So</p>
+<pre><code>$ sudo su -</code></pre>
+<p>At this point, you can play around with salt and see what you've managed to create with your masterless minion.</p>
+<pre><code>$ salt-call --local grains.items</code></pre>
+<p>This shows you all of the information the grains system has for you to use in your dynamic salt scripting. Anyhoo, what we really want to do is run our freshly created scripts. To do that, we're going to run a <code>highstate</code></p>
+<pre><code>$ salt-call --local state.highstate</code></pre>
+<p>That should fill your screen with info on the run. At the end of it, you'll see (assuming everything went right):</p>
+<pre><code>Summary
+------------
+Succeeded: 4
+Failed:    0
+------------
+Total:     4</code></pre>
+<p>But, lets not do a victory dance yet. Let's check our work.</p>
+<h3 id="check-your-work">Check your work</h3>
+<p>If you were feeling REALLY rambunctious, you would <a href="http://serverspec.org/">use serverspec and create REAL tests</a>, but I'm not so we won't.</p>
+<p>What artifacts should we see on the file system?</p>
+<ul>
+<li>directory exists: /home/vagrant/ws</li>
+<li>files exists in directory: /home/vagrant/ws/workstation-init.tar.gz</li>
+<li>directory exists: /tmp/ws and contains files</li>
+</ul>
+<p>It all checks out. We've won! (But don't get cocky, kid).</p>
+<p>That's it for now.</p>
+<p>James Francis - <span class="citation">@tcotav</span> - tcotav@gnslngr.us</p>
+      <!-- end page content -->
+
+      <div id="push"></div>
+    </div>
+
+    <div id="footer">
+      <div class="container">
+        <p class="muted credit">Article by <a href="mailto:tcotav@gnslngr.us">James Francis | @tcotav </a>.</p>
+      </div>
+    </div>
+
+
+
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="bootstrap/js/jquery.js"></script>
+    <script src="bootstrap/js/bootstrap-transition.js"></script>
+    <script src="bootstrap/js/bootstrap-alert.js"></script>
+    <script src="bootstrap/js/bootstrap-modal.js"></script>
+    <script src="bootstrap/js/bootstrap-dropdown.js"></script>
+    <script src="bootstrap/js/bootstrap-scrollspy.js"></script>
+    <script src="bootstrap/js/bootstrap-tab.js"></script>
+    <script src="bootstrap/js/bootstrap-tooltip.js"></script>
+    <script src="bootstrap/js/bootstrap-popover.js"></script>
+    <script src="bootstrap/js/bootstrap-button.js"></script>
+    <script src="bootstrap/js/bootstrap-collapse.js"></script>
+    <script src="bootstrap/js/bootstrap-carousel.js"></script>
+    <script src="bootstrap/js/bootstrap-typeahead.js"></script>
+
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
