@@ -142,7 +142,7 @@ Total:     14</code></pre>
 <p>or after renaming it and dropping it into the <code>mymongo</code> state directory's <code>init.sls</code>:</p>
 <pre><code>include:
   - mymongo.symlink_mongo_bins</code></pre>
-<p>but the real conclusion I reached is that I'll just avoid the whole shebang because the file list don't change all that often if ever:</p>
+<p>but the real conclusion I reached is that I'll just avoid the whole shebang because the file list doesn't change all that often if ever:</p>
 <pre><code># symlink binaries from /opt/mongo/bin -&gt; /usr/bin
 {% for bin in [&quot;bsondump&quot;,&quot;mongo&quot;,&quot;mongod&quot;,&quot;mongodump&quot;,&quot;mongoexport&quot;,&quot;mongofiles&quot;,&quot;mongoimport&quot;,&quot;mongooplog&quot;,&quot;mongoperf&quot;,&quot;mongorestore&quot;,&quot;mongos&quot;,&quot;mongosniff&quot;,&quot;mongostat&quot;,&quot;mongotop&quot;] %}
 
