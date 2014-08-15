@@ -1,0 +1,190 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Writing Salt Formulas in Python</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- CSS -->
+    <link href="bootstrap/css/bootstrap.css" rel="stylesheet">
+    <style type="text/css">
+
+      /* Sticky footer styles
+      -------------------------------------------------- */
+
+      html,
+      body {
+        height: 100%;
+        /* The html and body elements cannot have any padding or margin. */
+      }
+
+      /* Wrapper for page content to push down footer */
+      #wrap {
+        min-height: 100%;
+        height: auto !important;
+        height: 100%;
+        /* Negative indent footer by it's height */
+        margin: 0 auto -60px;
+      }
+
+      /* Set the fixed height of the footer here */
+      #push,
+      #footer {
+        height: 60px;
+      }
+      #footer {
+        background-color: #f5f5f5;
+      }
+
+      /* Lastly, apply responsive CSS fixes as necessary */
+      @media (max-width: 767px) {
+        #footer {
+          margin-left: -20px;
+          margin-right: -20px;
+          padding-left: 20px;
+          padding-right: 20px;
+        }
+      }
+
+
+
+      /* Custom page CSS
+      -------------------------------------------------- */
+      /* Not required for template or sticky footer method. */
+
+      .container {
+        width: auto;
+        max-width: 680px;
+      }
+      .container .credit {
+        margin: 20px 0;
+      }
+
+    </style>
+    <link href="bootstrap/css/bootstrap-responsive.css" rel="stylesheet"/>
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="bootstrap/js/html5shiv.js"></script>
+    <![endif]-->
+
+    <!-- Fav and touch icons -->
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="bootstrap/ico/apple-touch-icon-144-precomposed.png"/>
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="bootstrap/ico/apple-touch-icon-114-precomposed.png"/>
+      <link rel="apple-touch-icon-precomposed" sizes="72x72" href="bootstrap/ico/apple-touch-icon-72-precomposed.png"/>
+                    <link rel="apple-touch-icon-precomposed" href="bootstrap/ico/apple-touch-icon-57-precomposed.png"/>
+                                   <link rel="shortcut icon" href="bootstrap/ico/favicon.png"/>
+  </head>
+
+  <body>
+
+
+    <!-- Part 1: Wrap all page content here -->
+    <div id="wrap">
+
+      <div class="container">
+      <!-- begin page content -->
+
+<h2 id="writing-salt-formulas-in-python">Writing Salt Formulas in Python</h2>
+<h3 id="the-scenario">The Scenario</h3>
+<p>We've got some legacy environments or rather legacy code. Let's pretend for a moment that we can't or don't want to go with the standard location for the installs and assume that we're manually plopping these files in. Play along.</p>
+<p>We are installing alternate packages in /opt. We then symlink any binaries from there to the system path (<code>/usr/bin</code>). Could we have just added each <code>/opt/&lt;blah&gt;/bin</code> to the system path? Sure. Should we have? Probably. Did we? Hell no.</p>
+<p>So, what we need to do is symlink all of the binaries from <code>/opt/mongo</code>. At the 10k ft view though, we're applying a state to a list of items. How do we get that list though?</p>
+<h3 id="requirements">Requirements</h3>
+<p>You just need <a href="https://github.com/tcotav/python-sls-example">this repo</a> and a working salt install. I'm a fan of <a href="http://salt.readthedocs.org/en/latest/topics/tutorials/quickstart.html">masterless salt minions</a> for simple local dev work.</p>
+<h3 id="init.sls-using-python">init.sls using python</h3>
+<p>First, there are <a href="http://salt.readthedocs.org/en/latest/ref/renderers/all/salt.renderers.py.html">docs on using python for writing your templates</a>.</p>
+<p>If you take a look at <code>init.sls</code> in our test repo, you'll see some of the stuff related to using python for writing your sls. The first line of the file has to be:</p>
+<pre><code>#!py</code></pre>
+<p>From there, the only requirement (that I'm aware of) is that you have a <code>run()</code> function.</p>
+<pre><code>def run():</code></pre>
+<p>That's it. Let's take a look at the rest of our example file.</p>
+<pre><code>import os</code></pre>
+<p>You can use any of the python libs on your machine. Go crazy -- use all the libraries (no, don't...).</p>
+<pre><code>def gen_symlink_struct(filename, basepath, targetdir):</code></pre>
+<p>It's python -- you can use helper functions. You can call out and pull stuff from a database. You can sleep for 20 seconds as a very unfunny joke.</p>
+<p>You can also apply states iteratively using a for loop that iterates over a list of files it pulls up from the os which we do with this bit of code:</p>
+<pre><code>for f in [f for f in os.listdir(installdir)]:
+  retdict[&quot;%s_symlink&quot; % f] = gen_symlink_struct(f, installdir, &quot;/usr/bin&quot;)</code></pre>
+<p>Of course we have TWO cases where we need to do this -- in two separate states. The easy road is to just copy it entirely off to the other case and change the pillar data used. Duplicate code copypaste :(</p>
+<h3 id="the-biggest-thing-to-note">The biggest thing to note</h3>
+<p>The biggest thing to note is that you are going to return a data struct that parallels the <code>YAML</code> you would've used to do the same thing.</p>
+<p>Look at what we do in our <code>init.sls</code> file -- we generate python that looks like the following:</p>
+<pre><code>&#39;bsondump_symlink&#39;: {
+  &#39;file.symlink&#39;: [
+    {&#39;target&#39;: &#39;/opt/mongo/bin/bsondump&#39;}, 
+    {&#39;name&#39;: &#39;/usr/bin/bsondump&#39;}
+  ]
+}</code></pre>
+<p>compare that with the same YAML:</p>
+<pre><code>bsondump_symlink:
+  file.symlink:
+    - target: &#39;/opt/mongo/bin/bsondump&#39; 
+    - name: /usr/bin/bsondump</code></pre>
+<p>I know which one I'd rather use. If only I could somehome wedge that os.listdirs in there. (I just took a minute right there to ask in <code>#salt</code> irc channel. Crickets... so hopefully this isn't a silly example/use-case).</p>
+<h3 id="running-it">Running it</h3>
+<p>This is dependent on your environment. I usually work on a local masterless salt-minion vagrant box. To test it, I just <code>state.sls</code> the state</p>
+<pre><code>salt-call --local state.sls test</code></pre>
+<p>You'll get a list of all the files it changed and finally:</p>
+<pre><code>Summary
+-------------
+Succeeded: 14
+Failed:     0
+-------------
+Total:     14</code></pre>
+<h3 id="conclusion">Conclusion</h3>
+<p>In the end, this isn't all that great of a solution for us as the creation of symlinks is one task in a larger series. I guess I could modify the main .sls file by importing this sls:</p>
+<pre><code>include:
+  - test</code></pre>
+<p>or after renaming it and dropping it into the <code>mymongo</code> state directory's <code>init.sls</code>:</p>
+<pre><code>include:
+  - mymongo.symlink_mongo_bins</code></pre>
+<p>but the real conclusion I reached is that I'll just avoid the whole shebang because the file list don't change all that often if ever:</p>
+<pre><code># symlink binaries from /opt/mongo/bin -&gt; /usr/bin
+{% for bin in [&quot;bsondump&quot;,&quot;mongo&quot;,&quot;mongod&quot;,&quot;mongodump&quot;,&quot;mongoexport&quot;,&quot;mongofiles&quot;,&quot;mongoimport&quot;,&quot;mongooplog&quot;,&quot;mongoperf&quot;,&quot;mongorestore&quot;,&quot;mongos&quot;,&quot;mongosniff&quot;,&quot;mongostat&quot;,&quot;mongotop&quot;] %}
+
+{{bin}}_symlink:
+  file.symlink:
+    - target: {{ install_dir }}/bin/{{ bin }}
+    - name: /usr/bin/{{ bin }}
+    - require:
+      - file: /opt/mongo
+
+{% endfor %}</code></pre>
+<p>(that's right -- a gold star to the student who wrote down 'hardcode that').</p>
+      <!-- end page content -->
+
+      <div id="push"></div>
+    </div>
+
+    <div id="footer">
+      <div class="container">
+        <p class="muted credit">Article by <a href="mailto:tcotav@gnslngr.us">James Francis | @tcotav </a>.</p>
+      </div>
+    </div>
+
+
+
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="bootstrap/js/jquery.js"></script>
+    <script src="bootstrap/js/bootstrap-transition.js"></script>
+    <script src="bootstrap/js/bootstrap-alert.js"></script>
+    <script src="bootstrap/js/bootstrap-modal.js"></script>
+    <script src="bootstrap/js/bootstrap-dropdown.js"></script>
+    <script src="bootstrap/js/bootstrap-scrollspy.js"></script>
+    <script src="bootstrap/js/bootstrap-tab.js"></script>
+    <script src="bootstrap/js/bootstrap-tooltip.js"></script>
+    <script src="bootstrap/js/bootstrap-popover.js"></script>
+    <script src="bootstrap/js/bootstrap-button.js"></script>
+    <script src="bootstrap/js/bootstrap-collapse.js"></script>
+    <script src="bootstrap/js/bootstrap-carousel.js"></script>
+    <script src="bootstrap/js/bootstrap-typeahead.js"></script>
+
+  </body>
+</html>
+
