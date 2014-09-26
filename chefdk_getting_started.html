@@ -314,8 +314,8 @@ include_recipe &#39;tomcat&#39;</code></pre>
 <h3 id="and-now-actual-testing-will-occur">And now ACTUAL TESTING will occur</h3>
 <p>For that headline to be true though -- we'll have to write some tests. There are different kinds of tests, and test-kitchen supports a variety. First we're going to put some stuff into what is arguably the EASIEST test-kitchen supported test type: bats. <a href="https://github.com/sstephenson/bats">Bats</a> stands for &quot;bash automated testing system&quot;. There are lots of examples there at the link. To support this, we'll first make a test directory to use:</p>
 <pre><code>mkdir -p test/integration/default/bats</code></pre>
-<p>and then create a file, <code>tomcat.rb</code>, inside of that directory.</p>
-<p><code>tomcat.rb</code></p>
+<p>and then create a file, <code>tomcat.bats</code>, inside of that directory.</p>
+<p><code>tomcat.bats</code></p>
 <pre><code>#!/usr/bin/env bats
 
 @test &quot;java is found in PATH&quot; {
