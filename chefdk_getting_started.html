@@ -343,7 +343,7 @@ Uploading /tmp/busser/suites/bats/tomcat.bats (mode=0644)
 <p>Quick point there -- <code>kitchen verify</code> is what we do to verify that our test is working as we expect. It runs against the existing VM or it would sping up a new one if necessary. Invoking <code>kitchen test</code> would do a full test -- from spinning up a new vm, chef install, node converge, then test. We'll do that later. Probably.</p>
 <p>Okay, so we got <code>bats</code> working and doing some tests. Let's check it into <code>git</code> and then move on to adding more features to our cookbook.</p>
 <h3 id="war----huh-good-god-yall">War -- huh! Good God Y'All</h3>
-<p>Now we're going to push our java application archive file up to the vm and into the webapps directory of the tomcat install.</p>
+<p>Now we're going to push our java application archive file up to the vm and into the webapps directory of the tomcat install.  In any real world situation, we will NOT EVER have a war file or any other artifact inside of our cookbook.  Instead we'd use an url that points to the repo that generates the war file (which I'm sure we've all got behind some swank Jenkins job that runs a BATTERY of tests before it produces the war file, amirite?)</p>
 <p>The source that can be used to generate the war file is available in the <a href="https://github.com/tcotav/punter">punter github repo</a>.</p>
 <p>We need to get the file, <code>punter.war</code> into the files directory of the cookbook. First, let's make a spot to place the file. In the cookbook base directory, do the following:</p>
 <pre><code>mkdir -p files/default</code></pre>
@@ -362,6 +362,7 @@ Uploading /tmp/busser/suites/bats/tomcat.bats (mode=0644)
 include_recipe &#39;apt&#39;
 include_recipe &#39;tomcat&#39;
 
+# not really how Chef handles a war file but do so only for this demo
 cookbook_file &quot;/var/lib/tomcat6/webapps/punter.war&quot; do
   source &quot;punter.war&quot;
   mode 00744
