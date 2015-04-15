@@ -1,0 +1,3 @@
+[submodule "siteviz"]
+	path = siteviz
+	url = git@github.com:tcotav/siteviz.git
