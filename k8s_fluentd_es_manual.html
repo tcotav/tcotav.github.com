@@ -1,0 +1,233 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>#{page_title}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- CSS -->
+    <link href="bootstrap/css/bootstrap.css" rel="stylesheet">
+    <style type="text/css">
+
+      /* Sticky footer styles
+      -------------------------------------------------- */
+
+      html,
+      body {
+        height: 100%;
+        /* The html and body elements cannot have any padding or margin. */
+      }
+
+      /* Wrapper for page content to push down footer */
+      #wrap {
+        min-height: 100%;
+        height: auto !important;
+        height: 100%;
+        /* Negative indent footer by it's height */
+        margin: 0 auto -60px;
+      }
+
+      /* Set the fixed height of the footer here */
+      #push,
+      #footer {
+        height: 60px;
+      }
+      #footer {
+        background-color: #f5f5f5;
+      }
+
+      /* Lastly, apply responsive CSS fixes as necessary */
+      @media (max-width: 767px) {
+        #footer {
+          margin-left: -20px;
+          margin-right: -20px;
+          padding-left: 20px;
+          padding-right: 20px;
+        }
+      }
+
+
+
+      /* Custom page CSS
+      -------------------------------------------------- */
+      /* Not required for template or sticky footer method. */
+
+      .container {
+        width: auto;
+        max-width: 680px;
+      }
+      .container .credit {
+        margin: 20px 0;
+      }
+
+    </style>
+    <link href="bootstrap/css/bootstrap-responsive.css" rel="stylesheet"/>
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="bootstrap/js/html5shiv.js"></script>
+    <![endif]-->
+
+    <!-- Fav and touch icons -->
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="bootstrap/ico/apple-touch-icon-144-precomposed.png"/>
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="bootstrap/ico/apple-touch-icon-114-precomposed.png"/>
+      <link rel="apple-touch-icon-precomposed" sizes="72x72" href="bootstrap/ico/apple-touch-icon-72-precomposed.png"/>
+                    <link rel="apple-touch-icon-precomposed" href="bootstrap/ico/apple-touch-icon-57-precomposed.png"/>
+                                   <link rel="shortcut icon" href="bootstrap/ico/favicon.png"/>
+  </head>
+
+  <body>
+
+
+    <!-- Part 1: Wrap all page content here -->
+    <div id="wrap">
+
+      <div class="container">
+      <!-- begin page content -->
+<h2>Manually Installing Fluentd + ElasticSearch for Cluster Logging</h2>
+<h3>Overview</h3>
+<p>There are three parts to getting this running:</p>
+<ul>
+<li>spinning up the service and replication controllers for elasticsearch (ES)</li>
+<li>run fluentd_es on each kubernetes node</li>
+<li>spinning up the service and replication controllers for kibana</li>
+</ul>
+<p>First we get ES running as this is where all the logs are to be pushed or pulled.  Next is setting up the agent on each of the nodes to filter and deliver the logs to ES.  Last is kibana to allow us to fiddle with the logs in a semi-controlled clicky fashion.  The yaml for parts one and three <a href="https://github.com/kubernetes/kubernetes/tree/master/cluster/addons/fluentd-elasticsearch">can be found here</a>.</p>
+<h3>Deploy ElasticSearch</h3>
+<p>Again here's <a href="https://github.com/kubernetes/kubernetes/tree/master/cluster/addons/fluentd-elasticsearch">a link</a> to the yaml files in the k8s project that we'll be using below.</p>
+<p>Edit <code>es-controller.yaml</code> if you want to have more than two ES nodes running.  You can always adjust this later.  The line you want to edit is <code>replicas: 2</code>.</p>
+<p>Use kubectl to create the yamls -- first bringing up the RC and then the service:</p>
+<pre><code>kubectl create -f es-controller.yaml      
+kubectl create -f es-service.yaml         
+</code></pre>
+<h4>Confirm ES started properly</h4>
+<p>This is easier said than done inside of a k8s cluster.  What I'd suggest doing is (well honestly I'd say assume its all good until it isn't, but lets say you're not a cowboy) is run a <code>busybox pod</code> that you can use as a shell INSIDE k8s.</p>
+<p>Here's a command to do that.  Be sure to specify the right namespace when doing this.  Also consider changing <code>--tty jfbbox</code> to <code>--tty whatever-unique-name</code> you want in case a few different admins are using this technique at the same time.</p>
+<pre><code>kubectl run -i --tty jfbbox --image=busybox --generator=&quot;run-pod/v1&quot; --namespace=kube-system
+</code></pre>
+<p>Inside the busybox shell, you can run the following which performs a request against the service <code>elasticsearch-logging</code>:</p>
+<pre><code>wget http://elasticsearch-logging:9200
+</code></pre>
+<p>That command only retrieves the <code>index.html</code>, and you'll have to <code>cat</code> it after that to see what you pulled back.</p>
+<p>That full session should look something like this:</p>
+<pre><code>/ # wget http://elasticsearch-logging:9200
+Connecting to elasticsearch-logging:9200 (10.65.12.179:9200)
+index.html           100% |*******************************|   346   0:00:00 ETA
+/ # cat index.html
+{
+  &quot;status&quot; : 200,
+  &quot;name&quot; : &quot;Garrison Kane&quot;,
+  &quot;cluster_name&quot; : &quot;kubernetes-logging&quot;,
+  &quot;version&quot; : {
+    &quot;number&quot; : &quot;1.5.2&quot;,
+    &quot;build_hash&quot; : &quot;62ff9868b4c8a0c45860bebb259e21980778ab1c&quot;,
+    &quot;build_timestamp&quot; : &quot;2015-04-27T09:21:06Z&quot;,
+    &quot;build_snapshot&quot; : false,
+    &quot;lucene_version&quot; : &quot;4.10.4&quot;
+  },
+  &quot;tagline&quot; : &quot;You Know, for Search&quot;
+}
+</code></pre>
+<p>Once done, exit out of the shell and then delete the busybox pod with the following command:</p>
+<pre><code>kubectl delete pod jfbbox --namespace=kube-system
+</code></pre>
+<h4>Checking the ES logs</h4>
+<p>To see what went wrong or just as a point of interest, you can check the logs for each of the pods.  First get the names of the logs you're interested in.</p>
+<pre><code>kubectl get pods --namespace=kube-system | grep elasticsearch-logging | cut -d &quot; &quot; -f1
+</code></pre>
+<p>that should output similar to the following lines with only the last five characters different:</p>
+<pre><code>elasticsearch-logging-v1-56784
+elasticsearch-logging-v1-rg13v
+</code></pre>
+<p>and then get the logs for each of the pods listed:</p>
+<pre><code>kubectl logs elasticsearch-logging-v1-56784 --namespace=kube-system
+</code></pre>
+<p>add an <code>-f</code> flag if you want to live tail this.  This will dump out a lot of stuff.  You're probably like me (an ES n00b) so you'll say &quot;what does an error look like?&quot;.  Some things I've seen are masters not found, etc...   At this point it might be an ES problem OR it could be ES interacting with various things in your cluster.  For example -- is your DNS the issue?  Good luck.  Don't proceed until the above test works though.</p>
+<h3>Get Fluentd Agent Running on the Nodes</h3>
+<p>Now we get the Fluentd agent running on each of the nodes to filter the logs and ship them to ES.  To do this, we simply drop <a href="https://github.com/kubernetes/kubernetes/blob/master/cluster/saltbase/salt/fluentd-es/fluentd-es.yaml">the yaml found here</a> into the directory <code>/etc/kubernetes/manifests</code> on all of your nodes.</p>
+<p>You can test it by manually dropping it on to a k8s node and moving it to the right directory, but you should add that to whatever automation you're using to build out your nodes.</p>
+<p>Confirm that its running and working as you'd expect.</p>
+<pre><code>kubectl get pods --namespace=kube-system
+</code></pre>
+<p>and you should see the node running there -- something like this.</p>
+<pre><code>fluentd-elasticsearch-myhost-kubenode-001   1/1       Running   0          19h
+</code></pre>
+<p>You can check the logs using the same basic process as outlined above for installing ES.</p>
+<p><em>Note: one way you can tell if you're killing ES with logs is that you'll see timeouts in the logs like the following:</em></p>
+<pre><code>2016-06-14 19:28:45 +0000 [warn]: Could not push logs to Elasticsearch, resetting connection and trying again. read timeout reached
+2016-06-14 19:28:53 +0000 [info]: Connection opened to Elasticsearch cluster =&gt; {:host=&gt;&quot;elasticsearch-logging&quot;, :port=&gt;9200, :scheme=&gt;&quot;http&quot;}
+</code></pre>
+<p>When you see this, you will want to increase the number of nodes in your ES replication controller yaml.  That can be done with the following command (in this instance, we go from the default of <code>2</code> up to <code>5</code> pods):</p>
+<pre><code>kubectl scale rc elasticsearch-logging-v1 --replicas=5 --namespace=kube-system
+</code></pre>
+<h3>Kibana</h3>
+<p>This one is the blackest of black boxes to me.  Hope it works for you right off the bat :D</p>
+<p>Here's the yaml we want to use.</p>
+<p>https://github.com/kubernetes/kubernetes/tree/master/cluster/addons/fluentd-elasticsearch</p>
+<p>One thing before you begin -- more than likely, you'll want to expose your kibana service OUTSIDE of k8s.  To do that, you'll need to make small change to the yaml found in the above directory.  If you don't want that, don't worry about it.  We're going to add type <code>LoadBalancer</code> like this:</p>
+<pre><code> spec:
+-  type: &quot;LoadBalancer&quot;
+   ports:
+   - port: 80
+     protocol: TCP
+</code></pre>
+<p>Then we're ready to create it all.</p>
+<pre><code>kubectl create -f kibana-controller.yaml
+kubectl create -f  kibana-service.yaml
+</code></pre>
+<p>If you don't get an index at the start, that means that logs aren't getting into ES as you'd expect.  That's it.  Do a victory lap!</p>
+
+      <!-- end page content -->
+
+      <div id="push"></div>
+    </div>
+
+    <div id="footer">
+      <div class="container">
+        <p class="muted credit">Article by <a href="mailto:tcotav@gnslngr.us">James Francis | @tcotav </a>.</p>
+      </div>
+    </div>
+
+
+
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="bootstrap/js/jquery.js"></script>
+    <script src="bootstrap/js/bootstrap-transition.js"></script>
+    <script src="bootstrap/js/bootstrap-alert.js"></script>
+    <script src="bootstrap/js/bootstrap-modal.js"></script>
+    <script src="bootstrap/js/bootstrap-dropdown.js"></script>
+    <script src="bootstrap/js/bootstrap-scrollspy.js"></script>
+    <script src="bootstrap/js/bootstrap-tab.js"></script>
+    <script src="bootstrap/js/bootstrap-tooltip.js"></script>
+    <script src="bootstrap/js/bootstrap-popover.js"></script>
+    <script src="bootstrap/js/bootstrap-button.js"></script>
+    <script src="bootstrap/js/bootstrap-collapse.js"></script>
+    <script src="bootstrap/js/bootstrap-carousel.js"></script>
+    <script src="bootstrap/js/bootstrap-typeahead.js"></script>
+
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
