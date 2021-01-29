@@ -1,0 +1,249 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Creating a CI User for EKS </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- CSS -->
+    <link href="bootstrap/css/bootstrap.css" rel="stylesheet">
+    <style type="text/css">
+
+      /* Sticky footer styles
+      -------------------------------------------------- */
+
+      html,
+      body {
+        height: 100%;
+        /* The html and body elements cannot have any padding or margin. */
+      }
+
+      /* Wrapper for page content to push down footer */
+      #wrap {
+        min-height: 100%;
+        height: auto !important;
+        height: 100%;
+        /* Negative indent footer by it's height */
+        margin: 0 auto -60px;
+      }
+
+      /* Set the fixed height of the footer here */
+      #push,
+      #footer {
+        height: 60px;
+      }
+      #footer {
+        background-color: #f5f5f5;
+      }
+
+      /* Lastly, apply responsive CSS fixes as necessary */
+      @media (max-width: 767px) {
+        #footer {
+          margin-left: -20px;
+          margin-right: -20px;
+          padding-left: 20px;
+          padding-right: 20px;
+        }
+      }
+
+
+
+      /* Custom page CSS
+      -------------------------------------------------- */
+      /* Not required for template or sticky footer method. */
+
+      .container {
+        width: auto;
+        max-width: 680px;
+      }
+      .container .credit {
+        margin: 20px 0;
+      }
+
+    </style>
+    <link href="bootstrap/css/bootstrap-responsive.css" rel="stylesheet"/>
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="bootstrap/js/html5shiv.js"></script>
+    <![endif]-->
+
+    <!-- Fav and touch icons -->
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="bootstrap/ico/apple-touch-icon-144-precomposed.png"/>
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="bootstrap/ico/apple-touch-icon-114-precomposed.png"/>
+      <link rel="apple-touch-icon-precomposed" sizes="72x72" href="bootstrap/ico/apple-touch-icon-72-precomposed.png"/>
+                    <link rel="apple-touch-icon-precomposed" href="bootstrap/ico/apple-touch-icon-57-precomposed.png"/>
+                                   <link rel="shortcut icon" href="bootstrap/ico/favicon.png"/>
+  </head>
+
+  <body>
+
+
+    <!-- Part 1: Wrap all page content here -->
+    <div id="wrap">
+
+      <div class="container">
+      <!-- begin page content -->
+      <!-- end page content -->
+
+
+<h2>Creating a CI User for EKS</h2>
+<p>The problem -- we have a ci process that will need access to one namespace in an EKS cluster and must be able to deploy the new container as well as roll it back.</p>
+<h3>AuthN and AuthZ</h3>
+<p>We need to establish two things in relation to our interactions with EKS:</p>
+<ul>
+<li>are you who you say you are (authentication/AuthN)?</li>
+<li>what can you do should you be let in (authorization/AuthZ)?</li>
+</ul>
+<p>At the 10,000 foot view, AuthN gets solved using an IAM user and then we map that IAM user to internal EKS RBAC groups and bindings.</p>
+<h3>Setting up AuthN -- our IAM</h3>
+<p>For our specific use-case, we are using the IAM user to not just get access but also to generate our kubeconfig in our CI environment (thus the extra policy we tack on).  In the general case, if you have a copy of kubeconfig that you can make available to your CI system in some other manner -- feel free and you won't need this policy.</p>
+<p>Create a new IAM policy named: <code>EKS_CICD_User_Policy</code></p>
+<pre><code class="language-json">{
+    &quot;Version&quot;: &quot;2012-10-17&quot;,
+    &quot;Statement&quot;: [
+        {
+            &quot;Action&quot;: [
+                &quot;eks:DescribeCluster&quot;
+            ],
+            &quot;Resource&quot;: &quot;*&quot;,
+            &quot;Effect&quot;: &quot;Allow&quot;
+        }
+    ]
+}
+</code></pre>
+<p>This will allow you to request a kubeconfig later on with the aws-cli.  That done, we want to create a user with credentials that we can store and use in the CI environment -- known as programatic access.  This is <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html">well documented and standardized</a>.  Create this user as you will and attach the <code>EKS_CICD_User_Policy</code>.  The name we're going to use for this user is <code>my-test-iam-user</code> (which is a horrible name but it'll make the later examples clearer...  hopefully).</p>
+<p>You should now have an <code>access_key_id</code> and a <code>secret_access_key</code> for this user.</p>
+<h3>User or ServiceAccount in K8s</h3>
+<p>We need to create an entity to take action on resources within the cluster.  First off, do we create a k8s <code>serviceaccount</code> or a <code>user</code>?  Here is the answer from the <a href="https://www.cncf.io/blog/2018/08/01/demystifying-rbac-in-kubernetes/">CNCF blog</a>:</p>
+<pre><code>One topic that many Kubernetes users struggle with is the concept of subjects, but more specifically the difference between regular users and ServiceAccounts. In theory it looks simple:
+
+    Users: These are global, and meant for humans or processes living outside the cluster.
+    ServiceAccounts: These are namespaced and meant for intra-cluster processes running inside pods.
+</code></pre>
+<p><code>User</code> it is.</p>
+<h3>Now time for AuthZ</h3>
+<p>We're going to create an RBAC rolebinding for a user constrained to one k8s namespace that will limit what our user can do in the k8s cluster.  We'll create the namespace and the initial deployment of our application out of band.</p>
+<p>Here's the namespace create statement so we have it in front of us to use in the rolebinding.</p>
+<pre><code>kubectl create namespace my-test-ns
+</code></pre>
+<p>Next we'll create the Role and bindings that correlate our user to that role:</p>
+<pre><code class="language-yaml">---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: my-test-role
+  namespace: my-test-ns
+rules:
+- apiGroups: [&quot;extensions&quot;, &quot;apps&quot;]
+  resources: [&quot;replicasets&quot;]
+  verbs: [&quot;list&quot;, &quot;get&quot;, &quot;create&quot;, &quot;update&quot;, &quot;delete&quot;, &quot;watch&quot;, &quot;patch&quot;]
+- apiGroups: [&quot;extensions&quot;, &quot;apps&quot;]
+  resources: [&quot;deployments&quot;]
+  verbs: [&quot;list&quot;, &quot;get&quot;, &quot;create&quot;, &quot;update&quot;, &quot;delete&quot;, &quot;watch&quot;, &quot;patch&quot;]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: my-test-user-role-binding
+  namespace: my-test-ns
+roleRef:
+  kind: Role
+  name: my-test-role
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: User
+  name: my-test-user
+</code></pre>
+<p>Man, that's a lot of stuff, right?  Callouts:</p>
+<ul>
+<li>Role creates the group of permissions and constraints on those permissions, Rolebinding binds an entity (user or service account) to that role.</li>
+<li>You can see where the namespace fits in to this limiting the scope of this user and the role.</li>
+<li>This role could have more constrained rules.  All my CI user needs to do is set image on a deployment, check rollback status, and rollback if necessary.  I included all the verbs so you could see them all.</li>
+<li>The user created here in the Rolebinding, at subjects.name, is the user your CI pipeline will be using inside your EKS cluster.</li>
+<li>More information on the verbs and general authorization overview is available at <a href="https://kubernetes.io/docs/reference/access-authn-authz/authorization/#review-your-request-attributes">the k8s website</a></li>
+</ul>
+<p>Now we have an IAM user and policy on one hand and then a Role and Rolebinding on the other.  We have as our last step: tying the two together.</p>
+<h3>Mapping IAM user to RBAC</h3>
+<p>There are two broad ways to do this mapping: via <code>kubectl</code> or via <code>eksctl</code>.</p>
+<p>Via kubectl, you'll be making changes to a configmap named <code>aws_auth</code> that is created by AWS for this very purpose.  You can either edit the configmap or pull it down, make changes, and replace.</p>
+<p>In place:</p>
+<pre><code>kubectl edit configmap aws-auth -n kube-system
+</code></pre>
+<p>or dumping locally and then reapplying after you make the change:</p>
+<pre><code>kubectl get configmap aws-auth -n kube-system -o yaml &gt; aws-auth.yaml
+</code></pre>
+<p>The configmap will look like this.  You want to edit and add an entry to the <code>mapUsers</code> section as you see below:</p>
+<pre><code class="language-yaml">apiVersion: v1
+data:
+  mapRoles: |
+  # &lt;snip -- this is internal stuff.  don't touch it&gt;
+  mapUsers: |
+    - userarn: arn:aws:iam::123412341234:user/my-test-iam-user
+      username: my-test-user
+      groups:
+      - my-test-role
+</code></pre>
+<p>Just to be explicit as to where the values come from:</p>
+<ul>
+<li>userarn: is the full arn for the IAM user you created above, <code>my-test-iam-user</code></li>
+<li>username: is the name used in your k8s Rolebinding that ties to a Role, <code>my-test-user</code></li>
+<li>groups: is the Role that we created above, <code>my-test-role</code></li>
+</ul>
+<p>The third way to map your IAM user to internal EKS user is via the <code>eksctl</code> tool as <a href="https://eksctl.io/usage/iam-identity-mappings/">detailed here</a> and is basically:</p>
+<pre><code>eksctl create iamidentitymapping --cluster  my-cluster-1 --arn arn:aws:iam::123412341234:user/my-test-iam-user --group my-test-role --username my-test-user
+</code></pre>
+<p>That's it.  You're ready to roll.</p>
+      <div id="push"></div>
+    </div>
+
+    <div id="footer">
+      <div class="container">
+
+        <p class="muted credit">Article by <a href="mailto:tcotav@icloud.com">James Francis | @tcotav </a>.</p>
+      </div>
+    </div>
+
+
+
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="bootstrap/js/jquery.js"></script>
+    <script src="bootstrap/js/bootstrap-transition.js"></script>
+    <script src="bootstrap/js/bootstrap-alert.js"></script>
+    <script src="bootstrap/js/bootstrap-modal.js"></script>
+    <script src="bootstrap/js/bootstrap-dropdown.js"></script>
+    <script src="bootstrap/js/bootstrap-scrollspy.js"></script>
+    <script src="bootstrap/js/bootstrap-tab.js"></script>
+    <script src="bootstrap/js/bootstrap-tooltip.js"></script>
+    <script src="bootstrap/js/bootstrap-popover.js"></script>
+    <script src="bootstrap/js/bootstrap-button.js"></script>
+    <script src="bootstrap/js/bootstrap-collapse.js"></script>
+    <script src="bootstrap/js/bootstrap-carousel.js"></script>
+    <script src="bootstrap/js/bootstrap-typeahead.js"></script>
+
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
