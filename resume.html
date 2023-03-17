@@ -18,17 +18,32 @@
         background-color: white;
     }
 
+    li {
+      margin-top: .5em;
+      margin-bottom: .5em;
+      display: flex;
+    }
+
+    li:before {
+      content: "*";
+      margin-right: 1em;
+    }
+
     .hr1 {
       width: 100%;
       height: -20px;
+      margin-top: .5em;
+      margin-bottom: .5em;
       margin-left: auto;
       margin-right: auto;
       border-top: 3px double #095484;
     }
 
     h4.format {
-        top padding: 10px;
-        bottom padding: 10px;
+      margin-top: .5em;
+      margin-bottom: .5em;
+        top padding: 5px;
+        bottom padding: 5px;
     }
 
     .mycontainer {
@@ -47,77 +62,61 @@ Proven technical leader with over twenty five years of experience in retail web,
 
 <h4 class="format">WORK EXPERIENCE:</h4>
 <b>Principal Software Engineer</b> - Gamestop, Remote (2021-2023)<br/>
-- Led 3-person team and drove processes for building out and migrating 80% of the engineering teams to a common monitoring, Kubernetes, and CI/CD platform over the course of a year.<br/>
-- Untangled legacy multi-team AWS environments including shared Kubernetes clusters and moved teams into their own AWS accounts and clusters.<br/>
-- Set up pg_stat_statements tracking of production Postgresql RDS instances to track slow queries over time and worked with engineers to speed up problem queries.<br/>
-- Worked with security team to ensure security-related monitoring, alerting, and code/container vulnerability scanning was default in new platform and environments<br/>
-- Common application platform was implemented with off-the-shelf well-supported software and services: EKS, Terraform/Infrastructure-as-code, Gitlab-CI, New Relic + Open Telemetry<br/>
-- Worked with engineering teams to refactor for speed and clarity their Gitlab-CI processes<br/>
-<br/>
+<li>Led 3-person team and drove processes for building out and migrating 80% of the engineering teams to a common monitoring, Kubernetes, and CI/CD platform over the course of a year.</li>
+<li>Untangled legacy multi-team AWS environments including shared Kubernetes clusters and moved teams into their own AWS accounts and Kubernetes clusters.</li>
+<li>Set up pg_stat_statements tracking of production Postgresql RDS instances to track slow queries over time and worked with engineers to speed up problem queries.</li>
+<li>Worked with security team to ensure security-related monitoring, alerting, and code/container vulnerability scanning was default in new platform and environments.</li>
+<li>Common application platform was implemented with off-the-shelf well-supported software and services: EKS, Terraform/Infrastructure-as-code, Gitlab-CI, New Relic + Open Telemetry.</li>
+<li>Worked with engineering teams to refactor for speed and clarity their Gitlab-CI processes.</li>
 <b>Principal Software Engineer, Office of CTO</b> - Zulily, Seattle, WA (2020-2021)<br/>
-- Built out company techradar, weekly cloud tagging consistency reports, and detailed cloud spending reports to increase cloud usage visibility<br/>
-- Collaborated with engineering teams for architectural, design, and postmortem reviews to ensure thorough coverage including perspectives on cost, observability, and operational burden.<br/>
-- Formed and led the technology leadership working group composed of principals and team leads<br/>
-- Education and collaboration with engineering leaders and internal accounting team on clarifying and controlling cloud spend, AWS savings plans, and RI (EC2 reserved instance) usage.<br/>
-<br/>
+<li>Built out company techradar, weekly cloud tagging consistency reports, and detailed cloud spending reports to increase cloud usage visibility.</li>
+<li>Collaborated with engineering teams for architectural, design, and postmortem reviews to ensure thorough coverage including perspectives on cost, observability, and operational burden.</li>
+<li>Formed and led the technology leadership working group composed of principals and team leads.</li>
+<li>Education and collaboration with engineering leaders and internal accounting team on clarifying and controlling cloud spend, AWS savings plans, and RI (EC2 reserved instance) usage.</li>
 <b>Principal Software Engineer, Site Reliability and Infrastructure</b> - Zulily, Seattle, WA (2016-2020)<br/>
 <b>Site Reliability Engineer</b> - Zulily, Seattle, WA (2014-2016)<br/>
-- Responsible for retail e-commerce site uptime, performance, overall reliability, and capacity planning<br/>
-- Created two generations of primary service deployment service for production website services first for colo written in Python and then an AWS cloud version in Golang<br/>
-- Created custom Golang deployment service for credit card processing service in isolated PCI environment<br/>
-- Promoted and supported company-wide migration to Kubernetes and cloud (AWS and GCP).<br/>
-- Automated cloud infrastructure with infrastructure as code, Terraform, in both Google Cloud (GCP) and Amazon Web Services (AWS)<br/>
-- Provided technical leadership and guidance to infrastructure and ecommerce app and site teams (Java, PHP, and Nodejs)<br/>
-- Managed production web services and datastores: MongoDb, Redis, ElasticSearch, and MySQL systems<br/>
-<br/>
+<li>Responsible for retail e-commerce site uptime, performance, overall reliability, and capacity planning.</li>
+<li>Created two generations of primary service deployment service for production website services first for colo written in Python and then an AWS cloud version in Golang.</li>
+<li>Created custom Golang deployment service for credit card processing service in isolated PCI environment.</li>
+<li>Promoted and supported company-wide migration to Kubernetes and cloud (AWS and GCP).</li>
+<li>Automated cloud infrastructure with infrastructure as code, Terraform, in both Google Cloud (GCP) and Amazon Web Services (AWS).</li>
+<li>Provided technical leadership and guidance to infrastructure and ecommerce app and site teams (Java, PHP, and Nodejs).</li>
+<li>Managed production web services and datastores: MongoDb, Redis, ElasticSearch, and MySQL systems.</li>
 <b>Chef Automation Consultant</b> - Level 11 Consulting, Seattle, WA (2013-2014)<br/>
-- Worked on infrastructure as code Chef cookbook automation projects in Ruby for Chef Inc, GAP Inc, <br/>
-Microsoft Open Technologies, MTNSat, Inc. <br/>
-<br/>
+<li>Worked on infrastructure as code Chef cookbook automation projects in Ruby for Chef Inc, GAP Inc, Microsoft Open Technologies, MTNSat, Inc. </li>
 <b>Software Dev Consultant</b> - Level 11 Consulting/Synapse, Seattle WA (2011-2013)<br/>
-- Part of team that designed and developed a real-time analytics system in Java, Javascript, TSQL, and SqlServer for innovative traffic optimization system running at a premier property of a Fortune 100 company<br/>
-<br/>
+<li>Part of team that designed and developed a real-time analytics system in Java, Javascript, TSQL, and SqlServer for innovative traffic optimization system running at a premier property of a Fortune 100 company.</li>
 <b>Project Manager/IT Site Manager</b> - Cisco Systems, Seattle, WA (2008-2011)<br/>
 <b>Director of Operations</b>, Pure Networks, Inc (2008)<br/>
 <b>Business Intelligence Lead</b>, Pure Networks, Inc (2007 - 2008)<br/>
-- Managed team of 3-5 people for projects, web service deployments, and datacenter environment buildouts in Seattle, San Francisco, and Irvine.<br/>
-- Provided and maintained ongoing business metrics and ad-hoc reports to management using Python, Mysql, and SQL<br/>
-- Part of team responsible for performance, reliability, and capacity planning of public facing services and related colo DC.<br/>
-<br/>
+<li>Managed team of 3-5 people for projects, web service deployments, and datacenter environment buildouts in Seattle, San Francisco, and Irvine.</li>
+<li>Provided and maintained ongoing business metrics and ad-hoc reports to management using Python, Mysql, and SQL.</li>
+<li>Part of team responsible for performance, reliability, and capacity planning of public facing services and related colo DC.</li>
 <b>Senior Systems Engineer</b>, Visto Corporation, Seattle WA (2004-2007)<br/>
-- Owned end-to-end production web service operations for hosted service providing a consumer facing mobile mail Java system running on Linux and Oracle RDBMS<br/>
-- Part of team responsible for performance, maintenance, reliability, and capacity planning of services<br/>
-- Performed on-site product deployments, Java, Linux, Oracle, and training for customer-hosted version of product<br/>
-<br/>
+<li>Owned end-to-end production web service operations for hosted service providing a consumer facing mobile mail Java system running on Linux and Oracle RDBMS.</li>
+<li>Part of team responsible for performance, maintenance, reliability, and capacity planning of services.</li>
+<li>Performed on-site product deployments, Java, Linux, Oracle, and training for customer-hosted version of product.</li>
 <b>Scale Development Engineer</b>, Visto Corporation, Seattle WA (2004)<br/>
-- Wrote suite of Java/J2ME/SyncML stress testing tools for cellular-targeted services<br/>
-- Wrote most of the company's deployment specification for on-prem server product.<br/>
-<br/>
+<li>Wrote suite of Java/J2ME/SyncML stress testing tools for cellular-targeted services.</li>
+<li>Wrote most of the company's deployment specification for on-prem server product.</li>
 <b>Java Metadata Developer</b>, Washington Mutual, Seattle WA (2004)<br/>
-- Worked with Java and XSLT to transform and load metadata into repository working heavily with the Common Warehouse Metamodel<br/>
-<br/>
+<li>Worked with Java and XSLT to transform and load metadata into repository working heavily with the Common Warehouse Metamodel.</li>
 <b>Systems Engineer</b>, Visto Corporation/ ViAir Inc, Seattle WA (2002-2004)<br/>
-- Part of team responsible for all internal Linux systems and internal Linux build-out specification.<br/>
-- Responsible for performance tuning and management of Oracle PL/SQL and SQLServer T/SQL stored procedures with DBA team.<br/>
-<br/>
+<li>Part of team responsible for all internal Linux systems and internal Linux build-out specification.</li>
+<li>Responsible for performance tuning and management of Oracle PL/SQL and SQLServer T/SQL stored procedures with DBA team.</li>
 <b>Database Developer</b>, ViAir Inc, Seattle WA (2001-2002)<br/>
-- Coded and tuned database application code, Java, PL/SQL, T/SQL.<br/>
-- Built and maintained, as part of a team, the product data warehousing effort.<br/>
-<br/>
+<li>Coded and tuned database application code, Java, PL/SQL, T/SQL.</li>
+<li>Built and maintained, as part of a team, the product data warehousing effort.</li>
 <b>Independent Consultant</b>, Allvest Information Systems, Seattle WA (2000-2001)<br/>
-- Designed and wrote code for ecommerce catalog system including infra setup (Java + Oracle RDBMS + Linux)<br/>
-<br/>
+<li>Designed and wrote code for ecommerce catalog system including infra setup (Java + Oracle RDBMS + Linux).</li>
 <b>Independent Consultant</b>, Pacific Rim Imports, Seattle WA (1999-2000)<br/>
-- Designed and built initial supply chain and data management system in Java and DB2<br/>
-<br/>
+<li>Designed and built initial supply chain and data management system in Java and DB2.</li>
 <b>Developer/Database Designer</b>, Imaginet/Imation Studio, Minneapolis, MN (1998-99)<br/>
-- Developed applications for various customer projects in Java, TSQL, and Javascript<br/>
-<br/>
+<li>Developed applications for various customer projects in Java, TSQL, and Javascript.</li>
 <b>Developer</b>, Star Tribune, Minneapolis, MN (1997-98)<br/>
-- Created and maintained site's main content delivery program in Perl,C++, Sybase<br/>
-<br/>
+<li>Created and maintained site's main content delivery program in Perl,C++, Sybase.</li>
 <b>Programmer</b>, Chesnutt Group Inc., Seattle, WA (1996-97)<br/>
-- Wrote web applications in C++ and Perl to interface with Sybase and Oracle databases<br/>
+<li>Wrote web applications in C++ and Perl to interface with Sybase and Oracle databases.</li>
 <hr class="hr1"/>
 <h4 class="format">SKILLS:</h4>
   <b>Current:</b><br/>
@@ -127,7 +126,7 @@ Microsoft Open Technologies, MTNSat, Inc. <br/>
   Oracle RDBMS, PL/SQL, SQLServer, TSQLk, Java, Javascript, Chef, Salt, Ruby Perl, Shell Scripting, HTML5, C, and C++<br/>
 <hr class="hr1"/>
 <h4 class="format">INTERESTS:</h4>
-Electronic music creation, fiction writing, cartooning, running, working out<br/>
+Electronic music creation, fiction writing, cartooning, running<br/>
 <hr class="hr1"/>
 <h4 class="format">EDUCATION:</h4>
 Bachelor of Arts in English Literature, 1994<br/>
